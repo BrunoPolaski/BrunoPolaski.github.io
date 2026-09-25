@@ -67,15 +67,12 @@ const ptBR = {
     getInTouch: 'Fale comigo',
   },
   hero: {
+    role: 'Engenheiro de Software',
     intro: 'Sou o Bruno, engenheiro de software com mais de 3 anos de experiência construindo backends e produtos full-stack. Hoje faço P&D em software comercial na BairesDev.',
     hire: 'Me contrate',
     seeProjects: 'Ver projetos',
     scroll: 'Rolar',
     scrollLabel: 'Rolar até Sobre',
-  },
-  langs: {
-    title: (n: number) => `Meus ${n} repositórios públicos, por linguagem`,
-    other: 'Outras',
   },
   about: {
     title: 'Sobre mim',
@@ -140,7 +137,7 @@ const ptBR = {
     title: 'Tem uma ideia?',
     lead: 'Me conta o que você está construindo.',
   },
-  footer: { top: 'Voltar ao topo' },
+  footer: { top: 'Voltar ao topo', domain: 'domínio', label: 'Onde me encontrar' },
 }
 
 export type Messages = typeof ptBR

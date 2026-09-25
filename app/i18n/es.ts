@@ -13,15 +13,12 @@ const es: Messages = {
     getInTouch: 'Contáctame',
   },
   hero: {
+    role: 'Ingeniero de Software',
     intro: 'Soy Bruno, ingeniero de software con más de 3 años de experiencia construyendo backends y productos full-stack. Hoy hago I+D en software comercial en BairesDev.',
     hire: 'Contrátame',
     seeProjects: 'Ver proyectos',
     scroll: 'Desliza',
     scrollLabel: 'Ir a Sobre mí',
-  },
-  langs: {
-    title: n => `Mis ${n} repositorios públicos, por lenguaje`,
-    other: 'Otros',
   },
   about: {
     title: 'Sobre mí',
@@ -130,7 +127,7 @@ const es: Messages = {
     title: '¿Tienes una idea?',
     lead: 'Cuéntame qué estás construyendo.',
   },
-  footer: { top: 'Volver arriba' },
+  footer: { top: 'Volver arriba', domain: 'dominio', label: 'Dónde encontrarme' },
 }
 
 export default es

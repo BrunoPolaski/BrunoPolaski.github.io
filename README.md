@@ -28,14 +28,14 @@ app/
   assets/css/base.css     reset and a few layout helpers
   components/ui/          <UiButton>, <UiInput>, <UiTable>, <UiModal>, ...
   components/chart/       <ChartLine>, <ChartBar>, <ChartDonut>, <ChartSparkline>
-  components/fx/          <FxPixelSphere>, <FxHorizonGlow>, <FxPixelGrid>, <FxPixelText>, <FxPixelLoader>
+  components/fx/          <FxOrb>, <FxPixelSphere>, <FxHorizonGlow>, <FxPixelGrid>, <FxPixelText>, <FxPixelLoader>
   components/docs/        docs-site wrappers
-  components/folio/       portfolio sections: <FolioPatterns>, <FolioSaga>, <FolioWordmark>, ...
+  components/folio/       portfolio sections: <FolioPatterns>, <FolioSaga>, <FolioHexagon>, <FolioWordmark>, ...
   composables/            useToast, useTheme, useWidth, useFrameLoop, useShader, useLocale
   i18n/                   portfolio copy: pt-BR.ts (the shape every locale must match), en.ts, es.ts
   pages/index.vue         the portfolio
   pages/halo/             one docs page per component group
-server/api/               github-languages: public repos per language, for the hero sphere
+server/api/               github-languages: public repos per language, for the repo count in About
 ```
 
 Components are auto-imported by folder: `components/ui/Button.vue` becomes `<UiButton>`.

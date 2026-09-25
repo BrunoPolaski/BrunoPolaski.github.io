@@ -29,7 +29,7 @@ const skills = [
   { name: 'Docker', color: '#2496ED' },
   { name: 'MCP', color: '#C4C4C8' },
 ]
-// same request as the hero sphere (useFetch dedupes by URL), so the repo count is live too
+// live public repo count, from the GitHub API (at build time on the static site)
 const { data: langs } = await useFetch<Record<string, number>>('/api/github-languages')
 const repos = computed(() => Object.values(langs.value ?? {}).reduce((sum, n) => sum + n, 0))
 const stats = computed(() => [
@@ -84,13 +84,18 @@ function lean(e: PointerEvent) {
   halo.value?.style.setProperty('--px', (e.clientX / innerWidth * 2 - 1).toFixed(3))
   halo.value?.style.setProperty('--py', (e.clientY / innerHeight * 2 - 1).toFixed(3))
 }
-onMounted(() => addEventListener('pointermove', lean, { passive: true }))
+// the shader only draws once hydrated: fade it in after its first frame instead of popping in
+const lit = ref(false)
+onMounted(() => {
+  addEventListener('pointermove', lean, { passive: true })
+  requestAnimationFrame(() => requestAnimationFrame(() => { lit.value = true }))
+})
 onBeforeUnmount(() => removeEventListener('pointermove', lean))
 </script>
 
 <template>
   <div class="folio">
-    <div ref="halo" class="halo" aria-hidden="true">
+    <div ref="halo" class="halo" :class="{ 'is-lit': lit }" aria-hidden="true">
       <div class="halo__lens"><FxHorizonGlow :level="0.34" /></div>
     </div>
 
@@ -118,19 +123,18 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
     </nav>
 
     <section id="top" class="hero">
+      <FxOrb class="hero__orb" />
+      <span class="hero__role">{{ t.hero.role }}</span>
       <h1 class="hero__name">
         <span class="sr-only">{{ me.name }}</span>
         <FolioWordmark :text="me.name" />
       </h1>
-      <FolioLanguages class="hero__visual" />
-      <a href="#about" class="cue" :aria-label="t.hero.scrollLabel"><span class="cue__mouse" aria-hidden="true" />{{ t.hero.scroll }}</a>
-      <div class="hero__copy">
-        <p><FolioOrgText :text="t.hero.intro" /></p>
-        <div class="row">
-          <UiButton variant="solid" size="lg" :to="`mailto:${me.email}`">{{ t.hero.hire }}</UiButton>
-          <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
-        </div>
+      <p class="hero__intro"><FolioOrgText :text="t.hero.intro" /></p>
+      <div class="row hero__cta">
+        <UiButton variant="solid" size="lg" :to="`mailto:${me.email}`">{{ t.hero.hire }}</UiButton>
+        <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
       </div>
+      <a href="#about" class="cue" :aria-label="t.hero.scrollLabel"><span class="cue__mouse" aria-hidden="true" />{{ t.hero.scroll }}</a>
     </section>
 
     <section id="about" class="sec">
@@ -184,12 +188,10 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
     </section>
 
     <footer class="foot">
+      <FolioHexagon :email="me.email" :github="me.github" :linkedin="me.linkedin" class="foot__hexa" />
       <div class="foot__links">
-        <a :href="me.github"><Icon name="lucide:github" />GitHub</a>
-        <a :href="me.linkedin"><Icon name="lucide:linkedin" />LinkedIn</a>
         <a href="#top"><Icon name="lucide:arrow-up" />{{ t.footer.top }}</a>
       </div>
-      <FolioWordmark :text="me.name" class="foot__mark" />
     </footer>
   </div>
 </template>
@@ -226,7 +228,8 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
  * Background halo. The shader renders into a canvas a quarter of the viewport and is
  * blown up 4x: it's blurred anyway, so this costs 1/16 of the pixels.
  */
-.halo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0.6; }
+.halo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 2.4s var(--ease); }
+.halo.is-lit { opacity: 0.6; }
 .halo__lens { position: absolute; left: -10%; top: -10%; width: 30%; height: 30%; transform: scale(4); transform-origin: 0 0; }
 .halo__lens > .horizon {
   filter: blur(14px) saturate(0.25);
@@ -294,18 +297,39 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 .bar nav a[aria-current] { text-decoration: underline 2px var(--signal); text-underline-offset: 6px; }
 
 .hero {
-  display: grid;
-  grid-template: 'name name' auto 'copy visual' minmax(0, 1fr) / 1fr auto;
-  gap: var(--s-5);
-  height: 100svh;
-  min-height: 640px;
   position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-5);
+  min-height: max(100svh, 640px);
   padding: 96px clamp(var(--s-4), 5vw, var(--s-8)) 112px; /* bottom: room for the scroll cue */
-  overflow: hidden;
+  text-align: center; /* no overflow clipping: the glow must fade out on its own, past the hero's edge (.folio clips the sides) */
+}
+/* square, so the vortex and its glow stay round; both fade out before the canvas edge */
+.hero__orb {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: -1;
+  width: clamp(756px, 135vmin, 1296px); /* room for the wide intro cloud; .folio clips the sideways spill */
+  max-width: none;
+  aspect-ratio: 1;
+  translate: -50% -50%;
+}
+.hero__role {
+  padding: 6px 14px;
+  border: 1px solid var(--acrylic-edge);
+  border-radius: var(--r-pill);
+  background: var(--acrylic-tint);
+  backdrop-filter: blur(12px);
+  color: var(--ink-2);
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .hero__name {
-  grid-area: name;
-  position: relative;
   font-size: clamp(3.2rem, 10vw, 9.5rem);
   line-height: 0.9;
   letter-spacing: -0.04em;
@@ -314,9 +338,8 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
   --rest-o: 1;
 }
 .hero__name .mark { justify-content: center; }
-.hero__visual { grid-area: visual; align-self: end; }
-.hero__copy { grid-area: copy; position: relative; display: flex; flex-direction: column; gap: var(--s-5); align-self: end; }
-.hero__copy p { color: var(--ink-2); font-size: var(--fs-lg); max-width: 44ch; }
+.hero__intro { max-width: 46ch; color: var(--ink-2); font-size: var(--fs-md); }
+.hero__cta { justify-content: center; }
 
 /* scroll cue: a mouse whose wheel keeps rolling; fades out over the first 30vh of scroll */
 .cue {
@@ -456,11 +479,11 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 .contact { align-items: flex-start; margin-top: clamp(var(--s-7), 10vw, 140px); padding: clamp(var(--s-6), 6vw, var(--s-8)); border-radius: var(--r-shell); border: 1px solid var(--line); background: rgb(14 14 20 / 0.6); }
 
 .foot { margin-top: clamp(var(--s-7), 10vw, 140px); padding: 0 var(--s-4) var(--s-4); border-top: 1px solid var(--line); background: rgb(5 5 7 / 0.6); }
+.foot__hexa { margin-top: var(--s-7); }
 .foot__links { display: flex; justify-content: center; gap: var(--s-5); padding: var(--s-5) 0; font-size: var(--fs-sm); }
 .foot__links a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); text-decoration: none; }
 .foot__links .iconify { font-size: 1.15em; }
 .foot__links a:hover { color: var(--ink); }
-.foot__mark { justify-content: center; font-size: clamp(3rem, 12vw, 12rem); line-height: 1; letter-spacing: -0.03em; overflow: hidden; }
 
 @media (max-width: 900px) {
   .about { grid-template-columns: repeat(3, 1fr); }
@@ -472,8 +495,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
   .contact { padding: var(--s-6) var(--s-5); }
   .contact > .btn { max-width: 100%; font-size: var(--fs-md); } /* the email is wider than the panel at xl */
   .cue { display: none; } /* the hero outgrows the screen here; content already runs past the fold */
-  .hero { height: auto; min-height: 100svh; padding-bottom: var(--s-7); grid-template: 'name' auto 'visual' auto 'copy' auto / minmax(0, 1fr); }
-  .hero__name .mark { justify-content: start; }
+  .hero { padding-bottom: var(--s-7); }
   .bar nav { justify-content: start; gap: var(--s-3); }
   .about { grid-template-columns: 1fr; }
 }

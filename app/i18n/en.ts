@@ -13,15 +13,12 @@ const en: Messages = {
     getInTouch: 'Get in touch',
   },
   hero: {
+    role: 'Software Engineer',
     intro: 'I\'m Bruno, a software engineer with 3+ years of experience building backends and full-stack products. Right now I do R&D on commercial software at BairesDev.',
     hire: 'Hire me',
     seeProjects: 'See projects',
     scroll: 'Scroll',
     scrollLabel: 'Scroll to About',
-  },
-  langs: {
-    title: n => `My ${n} public repos, by language`,
-    other: 'Other',
   },
   about: {
     title: 'About me',
@@ -130,7 +127,7 @@ const en: Messages = {
     title: 'Got an idea?',
     lead: 'Tell me what you\'re building.',
   },
-  footer: { top: 'Back to top' },
+  footer: { top: 'Back to top', domain: 'domain', label: 'Find me' },
 }
 
 export default en
