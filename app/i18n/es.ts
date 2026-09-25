@@ -8,9 +8,9 @@ const es: Messages = {
   nav: {
     sections: { top: 'Inicio', about: 'Sobre mí', experience: 'Experiencia', projects: 'Proyectos', process: 'Cómo trabajo', contact: 'Contacto' },
     label: 'Secciones',
-    progress: 'Progreso de la página',
     language: 'Idioma',
-    getInTouch: 'Contáctame',
+    toLight: 'Usar tema claro',
+    toDark: 'Usar tema oscuro',
   },
   hero: {
     intro: 'Soy Bruno, ingeniero de software con más de 3 años de experiencia construyendo backends y productos full-stack. Hoy hago I+D en software comercial en BairesDev.',
@@ -36,6 +36,26 @@ const es: Messages = {
       mid: 'Desarrollador Full-stack Semi Senior',
       junior: 'Desarrollador Full-stack Junior',
       intern: 'Pasante de Desarrollo Full-stack',
+    },
+    // tooltip per icon; the icons are in pages/index.vue, under the same keys
+    acts: {
+      rd: {
+        building: 'Todavía escribiendo mi historia aquí. Enfocado en entregar calidad y valor al equipo.',
+      },
+      mid: {
+        components: 'Front-ends white-label en Vue 3, componentizados, responsivos e integrados al back-end.',
+        features: 'Back-ends y bases de datos en PHP y Go para la venta B2C de seguros y crédito, del modelo a producción.',
+        devops: 'Infraestructura como código (GitHub Actions, Terraform, AWS SAM, Serverless) y CI/CD para el equipo.',
+      },
+      junior: {
+        server: 'Mantuve en producción un back-end PHP multi-tenant de ventas.',
+        products: 'Integré nuevos productos de seguros y crédito con el proyecto en marcha.',
+      },
+      intern: {
+        mobile: 'Pantallas en Flutter para la billetera de una app BaaS (crédito y FAQ).',
+        backoffice: 'Sistema de ventas white-label y multi-tenant en Vue 3, usado por socios.',
+        api: 'Features de API en PHP con arquitectura hexagonal, revisadas por ingenieros senior.',
+      },
     },
   },
   projects: {

@@ -1,12 +1,13 @@
 <script setup lang="ts">
-defineProps<{ text: string }>()
+/** `wide`: for a sentence instead of a label; wraps and grows rightward from the trigger. */
+defineProps<{ text: string, wide?: boolean }>()
 const id = useId()
 </script>
 
 <template>
   <span class="tip" :aria-describedby="id">
     <slot />
-    <span :id="id" role="tooltip" class="tip__bubble">{{ text }}</span>
+    <span :id="id" role="tooltip" :class="['tip__bubble', { 'tip__bubble--wide': wide }]">{{ text }}</span>
   </span>
 </template>
 
@@ -30,4 +31,6 @@ const id = useId()
   z-index: 10;
 }
 .tip:hover .tip__bubble, .tip:focus-within .tip__bubble { opacity: 1; translate: -50% 0; }
+.tip__bubble--wide { left: 0; translate: 0 4px; width: max-content; max-width: min(260px, 70vw); padding: 8px 10px; white-space: normal; line-height: 1.45; }
+.tip:hover .tip__bubble--wide, .tip:focus-within .tip__bubble--wide { translate: 0 0; }
 </style>

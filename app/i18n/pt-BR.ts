@@ -62,9 +62,9 @@ const ptBR = {
   nav: {
     sections: { top: 'Início', about: 'Sobre', experience: 'Experiência', projects: 'Projetos', process: 'Como trabalho', contact: 'Contato' },
     label: 'Seções',
-    progress: 'Progresso da página',
     language: 'Idioma',
-    getInTouch: 'Fale comigo',
+    toLight: 'Usar tema claro',
+    toDark: 'Usar tema escuro',
   },
   hero: {
     intro: 'Sou o Bruno, engenheiro de software com mais de 3 anos de experiência construindo backends e produtos full-stack. Hoje faço P&D em software comercial na BairesDev.',
@@ -90,6 +90,26 @@ const ptBR = {
       mid: 'Desenvolvedor Full-stack Pleno',
       junior: 'Desenvolvedor Full-stack Júnior',
       intern: 'Estagiário de Desenvolvimento Full-stack',
+    },
+    // tooltip per icon; the icons are in pages/index.vue, under the same keys
+    acts: {
+      rd: {
+        building: 'Ainda escrevendo a minha história aqui. Focado em entregar qualidade e valor ao time.',
+      },
+      mid: {
+        components: 'Front-ends white-label em Vue 3, componentizados, responsivos e integrados ao back-end.',
+        features: 'Back-ends e bancos em PHP e Go para a venda B2C de seguros e crédito, do modelo à produção.',
+        devops: 'Infraestrutura como código (GitHub Actions, Terraform, AWS SAM, Serverless) e CI/CD para o time.',
+      },
+      junior: {
+        server: 'Mantive em produção um back-end PHP multi-tenant de vendas.',
+        products: 'Integrei novos produtos de seguro e crédito com o projeto em andamento.',
+      },
+      intern: {
+        mobile: 'Telas em Flutter para a carteira de um app BaaS (crédito e FAQ).',
+        backoffice: 'Sistema de vendas white-label e multi-tenant em Vue 3, usado por parceiros.',
+        api: 'Features de API em PHP com arquitetura hexagonal, revisadas por seniores.',
+      },
     },
   },
   projects: {

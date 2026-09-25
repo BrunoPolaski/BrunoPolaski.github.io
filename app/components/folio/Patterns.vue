@@ -223,7 +223,7 @@ onBeforeUnmount(() => {
   padding: 14px 18px 18px;
   border: 1px solid var(--line);
   border-radius: var(--r-card);
-  background: #0e0e14;
+  background: var(--card);
   transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease), opacity 0.4s var(--ease), background-color 0.4s var(--ease);
 }
 .card__role { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
@@ -244,7 +244,7 @@ onBeforeUnmount(() => {
   font-size: var(--fs-xs);
   font-weight: 700;
   white-space: nowrap;
-  box-shadow: 0 0 0 3px #0e0e14; /* a gap ring where it crosses the border */
+  box-shadow: 0 0 0 3px var(--card); /* a gap ring where it crosses the border */
 }
 .pop-enter-active { transition: opacity 0.35s var(--ease), translate 0.35s var(--ease), scale 0.35s var(--ease); }
 .pop-leave-active { transition: opacity 0.25s var(--ease), scale 0.25s var(--ease); }
@@ -256,7 +256,7 @@ onBeforeUnmount(() => {
 .card.is-off { opacity: 0.4; border-style: dashed; }
 .card.is-lit { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal), 0 0 48px -10px var(--signal); }
 .card.is-lit .card__role { color: var(--signal); }
-.card.is-done { background: color-mix(in srgb, var(--signal) 24%, #0e0e14); }
+.card.is-done { background: color-mix(in srgb, var(--signal) 24%, var(--card)); }
 
 .wires { position: absolute; inset: 0; z-index: -1; /* under cards and badges; isolation on .stage keeps it above the page */ width: 100%; height: 100%; overflow: visible; pointer-events: none; transition: opacity 0.3s; }
 .wires line { stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 4 6; transition: stroke 0.3s; }

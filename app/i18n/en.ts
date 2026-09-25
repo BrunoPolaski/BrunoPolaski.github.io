@@ -8,9 +8,9 @@ const en: Messages = {
   nav: {
     sections: { top: 'Intro', about: 'About', experience: 'Experience', projects: 'Projects', process: 'How I work', contact: 'Contact' },
     label: 'Sections',
-    progress: 'Page progress',
     language: 'Language',
-    getInTouch: 'Get in touch',
+    toLight: 'Use light theme',
+    toDark: 'Use dark theme',
   },
   hero: {
     intro: 'I\'m Bruno, a software engineer with 3+ years of experience building backends and full-stack products. Right now I do R&D on commercial software at BairesDev.',
@@ -36,6 +36,26 @@ const en: Messages = {
       mid: 'Mid-level Full-stack Developer',
       junior: 'Junior Full-stack Developer',
       intern: 'Full-stack Developer Intern',
+    },
+    // tooltip per icon; the icons are in pages/index.vue, under the same keys
+    acts: {
+      rd: {
+        building: 'Still writing my story here. Focused on delivering quality and value to the team.',
+      },
+      mid: {
+        components: 'White-label front ends in Vue 3: componentized, responsive and wired to the back end.',
+        features: 'Back ends and databases in PHP and Go for B2C insurance and credit sales, from model to production.',
+        devops: 'Infrastructure as code (GitHub Actions, Terraform, AWS SAM, Serverless) and CI/CD for the team.',
+      },
+      junior: {
+        server: 'Kept a multi-tenant PHP sales back end running in production.',
+        products: 'Integrated new insurance and credit products while the project was underway.',
+      },
+      intern: {
+        mobile: 'Flutter screens for the wallet of a BaaS app (credit and FAQ).',
+        backoffice: 'A white-label, multi-tenant sales system in Vue 3 used by partners.',
+        api: 'API features in PHP with hexagonal architecture, reviewed by senior engineers.',
+      },
     },
   },
   projects: {

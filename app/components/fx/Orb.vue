@@ -5,6 +5,8 @@
  * violet light that stays, slowly breathing, behind the hero. A few particles fling
  * back out of the collapse and stay, orbiting the name.
  */
+const props = defineProps<{ light?: boolean }>()
+
 const frag = /* glsl */ `
 uniform vec2 u_res;
 uniform float u_time;
@@ -15,6 +17,7 @@ uniform float u_clear; // 0..1, how much of the cloud has dissolved into the glo
 uniform float u_glow;  // 0..1, how bright the glow left behind is
 uniform float u_orbit; // 0..1, the survivors flinging out to their orbit
 uniform float u_rx;    // orbit half-width, scene units: narrower when the screen is
+uniform float u_light; // 1 on a light page: light can't add up there, so it all turns to violet ink
 
 float hash3(vec3 p) {
   p = fract(p * 0.3183099 + 0.1) * 17.0;
@@ -49,7 +52,7 @@ void main() {
   float breath = 1.0 + 0.06 * sin(u_time * 0.8);
   float light = (0.55 * exp(-pow(rc / (0.38 * breath), 2.0)) + 0.3 * exp(-rc / (0.5 * breath))) * mist * u_glow * edge;
   vec3 col = VIOLET * light;
-  float alpha = min(light, 1.0);
+  float alpha = min(light, 1.0) * mix(1.0, 0.35, u_light); // as ink, the glow must stay faint behind the name
 
   // the survivors: a few particles on a wide ellipse round the name, drifting counterclockwise
   if (u_orbit > 0.0) {
@@ -106,6 +109,10 @@ void main() {
     alpha += min(cloud, 1.0) * (1.0 - alpha);
   }
 
+  if (u_light > 0.5) {
+    gl_FragColor = vec4(vec3(0.32, 0.32, 0.92) * alpha, alpha); // plain violet over the page
+    return;
+  }
   col = 1.0 - exp(-col * 1.5); // tonemap
   gl_FragColor = vec4(col, alpha); // premultiplied
 }`
@@ -131,6 +138,7 @@ function intro() {
     u_glow: span(t, END - 0.5, 0.9) + 0.5 * flare, // into the glow it leaves behind
     u_orbit: span(t, END - 0.3, 1.2), // while a few fling back out and stay
     u_rx: orbitWidth,
+    u_light: props.light ? 1 : 0,
   }
 }
 

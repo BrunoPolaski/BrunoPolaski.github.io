@@ -93,7 +93,7 @@ onBeforeUnmount(() => clearInterval(timer))
   align-self: center;
 }
 
-.log { display: flex; align-items: center; gap: var(--s-3); padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: var(--r-pill); background: rgb(14 14 20 / 0.85); }
+.log { display: flex; align-items: center; gap: var(--s-3); padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: var(--r-pill); background: var(--panel); }
 .log__topic { flex: none; font-family: ui-monospace, monospace; font-size: var(--fs-xs); color: var(--ink-3); }
 .log__chips {
   flex: 1;
@@ -139,7 +139,7 @@ onBeforeUnmount(() => clearInterval(timer))
   padding: var(--s-4) var(--s-5) var(--s-5);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
-  background: #0e0e14;
+  background: var(--card);
   transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease), background-color 0.4s var(--ease);
 }
 /* the subscription: a wire from the log down to each handler */
@@ -148,7 +148,7 @@ onBeforeUnmount(() => clearInterval(timer))
 .handler.is-active::before { border-left-style: solid; border-color: var(--signal); }
 .handler.is-active.is-comp { border-color: var(--warning); box-shadow: 0 0 0 1px var(--warning), 0 0 48px -10px var(--warning); }
 .handler.is-active.is-comp::before { border-color: var(--warning); }
-.handler.is-done { background: color-mix(in srgb, var(--signal) 12%, #0e0e14); }
+.handler.is-done { background: color-mix(in srgb, var(--signal) 12%, var(--card)); }
 
 .handler__top { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); min-height: 22px; }
 .handler__top small { color: var(--ink-3); }

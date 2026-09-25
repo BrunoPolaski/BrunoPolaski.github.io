@@ -64,7 +64,7 @@ const hot = ref<string>()
 .hexa { position: relative; width: 680px; height: 200px; margin: 0 auto; }
 .hexa__art { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; overflow: visible; }
 
-.hexa__app { fill: rgb(14 14 20 / 0.72); stroke: var(--line-strong); stroke-width: 1.5; transition: stroke var(--dur) var(--ease); }
+.hexa__app { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1.5; transition: stroke var(--dur) var(--ease); }
 .hexa__domain { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 5; }
 .hexa__me { text-anchor: middle; fill: var(--ink); font-size: 22px; font-weight: 800; font-stretch: 125%; }
 .hexa__cap { text-anchor: middle; fill: var(--ink-3); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }
@@ -101,7 +101,7 @@ const hot = ref<string>()
   padding: 0 14px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background: rgb(14 14 20 / 0.72);
+  background: var(--panel);
   color: var(--ink-2);
   text-decoration: none;
   transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
