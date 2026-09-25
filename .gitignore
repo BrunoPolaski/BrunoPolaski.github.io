@@ -1,0 +1,9 @@
+.nuxt
+.output
+.data
+.cache
+node_modules
+dist
+.env
+*.log
+.playwright-mcp

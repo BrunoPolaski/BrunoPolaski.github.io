@@ -1,0 +1,118 @@
+/* Halo design tokens. Components read roles, never raw hex. */
+:root {
+  color-scheme: light;
+
+  /* ink & surfaces */
+  --canvas: #f2f2f0;
+  --surface: #ffffff;
+  --surface-sunken: #f7f7f6;
+  --ink: #000000;
+  --ink-2: #45454a;
+  --ink-3: #7c7c82;
+  --on-ink: #ffffff;
+  --line: #e3e3e0;
+  --line-strong: #cfcfcb;
+  --wash: rgb(0 0 0 / 0.05);
+
+  /* the one signal hue, from the particle sphere: focus + motion only */
+  --signal: #4646ff;
+  --signal-soft: rgb(70 70 255 / 0.14);
+
+  /* status (always paired with icon + label) */
+  --good: #0ca30c;
+  --good-text: #006300;
+  --warning: #fab219;
+  --critical: #d03b3b;
+
+  /* chart roles (validated default palette, first three slots) */
+  --series-1: #2a78d6;
+  --series-2: #eb6834;
+  --series-3: #1baf7a;
+  --grid: #e1e0d9;
+  --axis: #c3c2b7;
+
+  /* type */
+  --font: 'Archivo', system-ui, sans-serif;
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2.25rem;
+  --fs-3xl: clamp(2.5rem, 6vw, 4.5rem);
+
+  /* space (4px grid) */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 72px;
+
+  /* radius steps with hierarchy: shell > card > control */
+  --r-shell: 20px;
+  --r-card: 14px;
+  --r-control: 8px;
+  --r-pill: 999px;
+
+  /* acrylic: translucent tint + backdrop blur + fine grain */
+  --acrylic-tint: rgb(255 255 255 / 0.62);
+  --acrylic-edge: rgb(255 255 255 / 0.7);
+  --acrylic-noise: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 .16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  --shadow-pop: 0 1px 2px rgb(0 0 0 / 0.06), 0 12px 32px -8px rgb(0 0 0 / 0.18);
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --dur: 160ms;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --canvas: #000000;
+    --surface: #131316;
+    --surface-sunken: #0a0a0c;
+    --ink: #ffffff;
+    --ink-2: #c4c4c8;
+    --ink-3: #8a8a90;
+    --on-ink: #000000;
+    --line: #26262b;
+    --line-strong: #3a3a40;
+    --wash: rgb(255 255 255 / 0.07);
+    --signal: #7a7aff;
+    --signal-soft: rgb(122 122 255 / 0.2);
+    --good-text: #0ca30c;
+    --series-1: #3987e5;
+    --series-2: #d95926;
+    --series-3: #199e70;
+    --grid: #2c2c2a;
+    --axis: #383835;
+    --acrylic-tint: rgb(19 19 22 / 0.58);
+    --acrylic-edge: rgb(255 255 255 / 0.08);
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --canvas: #000000;
+  --surface: #131316;
+  --surface-sunken: #0a0a0c;
+  --ink: #ffffff;
+  --ink-2: #c4c4c8;
+  --ink-3: #8a8a90;
+  --on-ink: #000000;
+  --line: #26262b;
+  --line-strong: #3a3a40;
+  --wash: rgb(255 255 255 / 0.07);
+  --signal: #7a7aff;
+  --signal-soft: rgb(122 122 255 / 0.2);
+  --good-text: #0ca30c;
+  --series-1: #3987e5;
+  --series-2: #d95926;
+  --series-3: #199e70;
+  --grid: #2c2c2a;
+  --axis: #383835;
+  --acrylic-tint: rgb(19 19 22 / 0.58);
+  --acrylic-edge: rgb(255 255 255 / 0.08);
+}
