@@ -20,6 +20,21 @@ Every push to `main` (and a daily scheduled run, to refresh the GitHub stats) bu
 `pnpm generate` and publishes it to GitHub Pages via `.github/workflows/deploy.yml`.
 The repo-count and language data are fetched from the GitHub API at build time.
 
+### Contact form and WhatsApp
+
+Set these as repository variables (Settings → Secrets and variables → Actions → Variables).
+They ship inside the public page, so none of them is a secret. Each one is optional:
+
+| Variable | Used for | Without it |
+|---|---|---|
+| `NUXT_PUBLIC_WHATSAPP` | "Hire me" and the form's WhatsApp option (digits with country code) | "Hire me" opens email; no WhatsApp option |
+| `NUXT_PUBLIC_EMAILJS_SERVICE_ID` | EmailJS service that sends the form | the form opens the visitor's mail app |
+| `NUXT_PUBLIC_EMAILJS_TEMPLATE_ID` | EmailJS template: paste `emails/contact.html` into it | 〃 |
+| `NUXT_PUBLIC_EMAILJS_PUBLIC_KEY` | EmailJS public key | 〃 |
+
+The template's settings (subject, recipient, reply-to) are listed at the top of `emails/contact.html`.
+For local runs, put the same names in a `.env` file.
+
 ## Layout
 
 ```
@@ -36,6 +51,7 @@ app/
   pages/index.vue         the portfolio
   pages/halo/             one docs page per component group
 server/api/               github-languages: public repos per language, for the repo count in About
+emails/contact.html       HTML for the EmailJS template behind the contact form
 ```
 
 Components are auto-imported by folder: `components/ui/Button.vue` becomes `<UiButton>`.

@@ -23,6 +23,16 @@ export default defineNuxtConfig({
   nitro: { prerender: { routes: ['/', '/halo'] } },
   runtimeConfig: {
     githubToken: '', // NUXT_GITHUB_TOKEN: optional, lifts GitHub's 60 requests/hour limit at build time
+    // Baked into the static build, so all of these end up public. Each is optional: without it
+    // the contact form falls back to a mailto: link and hides the WhatsApp option.
+    public: {
+      whatsapp: '', // NUXT_PUBLIC_WHATSAPP: number with country code, e.g. 5541999999999
+      emailjs: {
+        serviceId: '', // NUXT_PUBLIC_EMAILJS_SERVICE_ID
+        templateId: '', // NUXT_PUBLIC_EMAILJS_TEMPLATE_ID: its HTML is emails/contact.html
+        publicKey: '', // NUXT_PUBLIC_EMAILJS_PUBLIC_KEY
+      },
+    },
   },
   typescript: { strict: true },
 })

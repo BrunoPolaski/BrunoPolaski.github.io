@@ -32,6 +32,11 @@ jobs:
         env:
           NITRO_PRESET: github_pages # adds .nojekyll so Pages serves the _nuxt/ folder
           NUXT_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # contact form and WhatsApp links: repository variables (public anyway, they ship in the page)
+          NUXT_PUBLIC_WHATSAPP: ${{ vars.NUXT_PUBLIC_WHATSAPP }}
+          NUXT_PUBLIC_EMAILJS_SERVICE_ID: ${{ vars.NUXT_PUBLIC_EMAILJS_SERVICE_ID }}
+          NUXT_PUBLIC_EMAILJS_TEMPLATE_ID: ${{ vars.NUXT_PUBLIC_EMAILJS_TEMPLATE_ID }}
+          NUXT_PUBLIC_EMAILJS_PUBLIC_KEY: ${{ vars.NUXT_PUBLIC_EMAILJS_PUBLIC_KEY }}
       - uses: actions/upload-pages-artifact@v5
         with:
           path: .output/public

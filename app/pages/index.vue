@@ -17,6 +17,9 @@ const me = {
   github: 'https://github.com/BrunoPolaski',
   linkedin: 'https://www.linkedin.com/in/bruno-polaski',
 }
+// "Hire me" opens a WhatsApp chat with a message in the visitor's language, or email without a number
+const { whatsapp } = useRuntimeConfig().public
+const hire = computed(() => whatsapp ? whatsappUrl(whatsapp, t.value.hero.hireText) : `mailto:${me.email}`)
 // brand colours; MCP has none, so it stays neutral
 const skills = [
   { name: 'Go', color: '#00ADD8' },
@@ -124,14 +127,13 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 
     <section id="top" class="hero">
       <FxOrb class="hero__orb" />
-      <span class="hero__role">{{ t.hero.role }}</span>
       <h1 class="hero__name">
         <span class="sr-only">{{ me.name }}</span>
         <FolioWordmark :text="me.name" />
       </h1>
       <p class="hero__intro"><FolioOrgText :text="t.hero.intro" /></p>
       <div class="row hero__cta">
-        <UiButton variant="solid" size="lg" :to="`mailto:${me.email}`">{{ t.hero.hire }}</UiButton>
+        <UiButton variant="solid" size="lg" :to="hire" :icon="whatsapp ? 'lucide:message-circle' : undefined" target="_blank" rel="noopener">{{ t.hero.hire }}</UiButton>
         <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
       </div>
       <a href="#about" class="cue" :aria-label="t.hero.scrollLabel"><span class="cue__mouse" aria-hidden="true" />{{ t.hero.scroll }}</a>
@@ -184,7 +186,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
     <section id="contact" class="sec contact spot" @pointermove="spot">
       <FolioReveal :text="t.contact.title" />
       <p class="muted">{{ t.contact.lead }}</p>
-      <UiButton variant="solid" size="xl" :to="`mailto:${me.email}`" icon-right="lucide:arrow-up-right">{{ me.email }}</UiButton>
+      <FolioContact :email="me.email" />
     </section>
 
     <footer class="foot">
@@ -319,16 +321,6 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
   aspect-ratio: 1;
   translate: -50% -50%;
 }
-.hero__role {
-  padding: 6px 14px;
-  border: 1px solid var(--acrylic-edge);
-  border-radius: var(--r-pill);
-  background: var(--acrylic-tint);
-  backdrop-filter: blur(12px);
-  color: var(--ink-2);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-}
 .hero__name {
   font-size: clamp(3.2rem, 10vw, 9.5rem);
   line-height: 0.9;
@@ -338,7 +330,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
   --rest-o: 1;
 }
 .hero__name .mark { justify-content: center; }
-.hero__intro { max-width: 46ch; color: var(--ink-2); font-size: var(--fs-md); }
+.hero__intro { max-width: 46ch; color: var(--ink); font-size: var(--fs-md); text-shadow: 0 1px 14px rgb(5 5 7 / 0.9), 0 0 2px rgb(5 5 7 / 0.6); } /* sits on the glow: full ink plus a dark halo keeps it legible */
 .hero__cta { justify-content: center; }
 
 /* scroll cue: a mouse whose wheel keeps rolling; fades out over the first 30vh of scroll */
@@ -493,7 +485,6 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 @media (max-width: 720px) {
   .panel { padding: var(--s-4); }
   .contact { padding: var(--s-6) var(--s-5); }
-  .contact > .btn { max-width: 100%; font-size: var(--fs-md); } /* the email is wider than the panel at xl */
   .cue { display: none; } /* the hero outgrows the screen here; content already runs past the fold */
   .hero { padding-bottom: var(--s-7); }
   .bar nav { justify-content: start; gap: var(--s-3); }
