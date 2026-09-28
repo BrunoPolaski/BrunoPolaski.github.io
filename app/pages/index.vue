@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { createAnimatable, createDraggable, createScope, createTimeline, onScroll, type Scope } from 'animejs'
 import type { Messages } from '~/i18n/pt-BR'
 
 definePageMeta({ layout: false })
@@ -116,6 +117,78 @@ onMounted(() => {
   requestAnimationFrame(() => requestAnimationFrame(() => { lit.value = true }))
 })
 onBeforeUnmount(() => removeEventListener('pointermove', lean))
+
+// Motion allowed: the hero's layers leave at different speeds as you scroll out of it, and the
+// experience timeline fills in as it passes the middle of the screen.
+// Big screens, too: "How I work" pins and the scroll plays its story (scrollytelling).
+// Mouse only, too: skill chips can be flung and spring back home, and the hero buttons lean
+// toward the cursor. The scope re-runs whenever one of its media queries flips.
+const roleLists = ref<HTMLElement[]>([])
+const chips = ref<HTMLElement>()
+const cta = ref<HTMLElement>()
+const sagaAt = ref<number>() // scroll progress through the pinned process section; unset = not pinned
+let scope: Scope | undefined
+onMounted(() => {
+  scope = createScope({ mediaQueries: {
+    mouse: '(pointer: fine)',
+    calm: '(prefers-reduced-motion: reduce)',
+    stage: '(min-width: 1025px) and (min-height: 720px)', // the whole section fits on one screen
+  } }).add((self) => {
+    if (!self || self.matches.calm) return
+    const undo: (() => void)[] = []
+    // parallax exit: the orb swells and fades, the text drifts down against the scroll (so it lags) and fades,
+    // the name most, the buttons least
+    createTimeline({
+      defaults: { ease: 'linear', duration: 1000 },
+      autoplay: onScroll({ target: '.hero', enter: 'top top', leave: 'top bottom', sync: 0.5 }), // thresholds read 'screen element'
+    })
+      .add('.hero__orb', { scale: [1, 1.5], opacity: [1, 0] }, 0)
+      .add('.hero__name', { y: [0, 220], scale: [1, 0.9], opacity: [1, 0], duration: 700 }, 0)
+      .add('.hero__intro', { y: [0, 140], opacity: [1, 0], duration: 600 }, 0)
+      .add('.hero__cta', { y: [0, 70], opacity: [1, 0], duration: 500 }, 0)
+    // each role lights its dot (--lit), then fills the line down to the next, older one (--fill)
+    for (const ol of roleLists.value) {
+      if (ol.children.length < 2) continue
+      const tl = createTimeline({
+        defaults: { ease: 'linear' },
+        autoplay: onScroll({ target: ol, enter: 'center top', leave: 'center bottom', sync: 0.5 }),
+      })
+      for (const li of ol.children) {
+        tl.add(li, { '--lit': [0, 1], duration: 150 })
+        if (li !== ol.lastElementChild) tl.add(li, { '--fill': [0, 1], duration: 1000 })
+      }
+    }
+    if (self.matches.stage) {
+      sagaAt.value = 0 // makes the section tall; the observer measures it on the next frame
+      onScroll({ target: '#process', enter: 'top top', leave: 'bottom bottom', onUpdate: (o) => { sagaAt.value = o.progress } })
+      undo.push(() => { sagaAt.value = undefined })
+    }
+    if (!self.matches.mouse) return () => undo.forEach(f => f())
+    for (const li of chips.value!.children) {
+      createDraggable(li as HTMLElement, { x: { snap: [0] }, y: { snap: [0] }, releaseStiffness: 140, releaseDamping: 7 })
+    }
+    for (const el of cta.value!.children) {
+      const btn = el as HTMLElement
+      const pull = createAnimatable(btn, { x: 400, y: 400, ease: 'out(3)' })
+      const x = pull.x!, y = pull.y!
+      const move = (e: PointerEvent) => {
+        // measure from the button's resting centre: the box already includes the current pull
+        const b = btn.getBoundingClientRect()
+        x((e.clientX - b.left - b.width / 2 + (x() as number)) * 0.35)
+        y((e.clientY - b.top - b.height / 2 + (y() as number)) * 0.35)
+      }
+      const leave = () => { x(0, 900, 'outElastic(1, .4)'); y(0, 900, 'outElastic(1, .4)') }
+      btn.addEventListener('pointermove', move)
+      btn.addEventListener('pointerleave', leave)
+      undo.push(() => {
+        btn.removeEventListener('pointermove', move)
+        btn.removeEventListener('pointerleave', leave)
+      })
+    }
+    return () => undo.forEach(f => f())
+  })
+})
+onBeforeUnmount(() => scope?.revert())
 </script>
 
 <template>
@@ -142,7 +215,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
         <FolioWordmark :text="me.name" />
       </h1>
       <p class="hero__intro"><FolioOrgText :text="t.hero.intro" /></p>
-      <div class="row hero__cta">
+      <div ref="cta" class="row hero__cta">
         <UiButton variant="solid" size="lg" :to="hire" :icon="whatsapp ? 'lucide:message-circle' : undefined" target="_blank" rel="noopener">{{ t.hero.hire }}</UiButton>
         <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
       </div>
@@ -153,13 +226,13 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
       <FolioReveal :text="t.about.title" />
       <div class="about">
         <div class="panel spot about__intro" @pointermove="spot">
-          <p>{{ t.about.text }}</p>
-          <ul class="chips">
+          <FolioScrub :text="t.about.text" />
+          <ul ref="chips" class="chips">
             <li v-for="s in skills" :key="s.name" :style="{ '--c': s.color }">{{ s.name }}</li>
           </ul>
         </div>
         <div v-for="(s, i) in stats" :key="i" class="panel spot stat" @pointermove="spot">
-          <strong>{{ s.value }}</strong>
+          <FolioCount :value="s.value" />
           <span><FolioOrgText :text="s.label" /></span>
         </div>
       </div>
@@ -170,7 +243,7 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
       <div class="xp">
         <article v-for="c in experience" :key="c.company" class="panel spot" @pointermove="spot">
           <h3><FolioOrgText :text="c.company" /></h3>
-          <ol class="xp__roles">
+          <ol ref="roleLists" class="xp__roles">
             <li v-for="r in c.roles" :key="r.key" :class="{ 'is-now': !r.to }">
               <b>{{ t.experience.roles[r.key] }}</b>
               <span class="muted">{{ period(r) }}</span>
@@ -192,10 +265,12 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
       <UiButton variant="outline" :to="me.github" icon-right="lucide:arrow-up-right" class="sec__more">{{ t.projects.more }}</UiButton>
     </section>
 
-    <section id="process" class="sec">
-      <FolioReveal :text="t.process.title" />
-      <p class="muted">{{ t.process.lead }}</p>
-      <FolioSaga />
+    <section id="process" class="sec" :class="{ 'is-pinned': sagaAt !== undefined }">
+      <div class="sec__pin">
+        <FolioReveal :text="t.process.title" />
+        <p class="muted">{{ t.process.lead }}</p>
+        <FolioSaga :at="sagaAt" />
+      </div>
     </section>
 
     <section id="contact" class="sec contact spot" @pointermove="spot">
@@ -412,12 +487,17 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 
 .sec { display: flex; flex-direction: column; gap: var(--s-6); width: min(1200px, 100% - 2 * var(--s-4)); margin: 0 auto; padding: clamp(var(--s-7), 10vw, 140px) 0 0; }
 .sec h2 { font-size: clamp(2.2rem, 6vw, 4.5rem); letter-spacing: -0.03em; }
-.sec > .muted { margin-top: calc(-1 * var(--s-4)); font-size: var(--fs-lg); }
+.sec > .muted, .sec__pin > .muted { margin-top: calc(-1 * var(--s-4)); font-size: var(--fs-lg); }
+/* unpinned, the wrapper steps aside: its children lay out as the section's own */
+.sec__pin { display: contents; }
+/* pinned: one screen of stage plus 40vh of scroll for each of the story's 7 frames */
+.sec.is-pinned { height: calc(100vh + 7 * 40vh); }
+.is-pinned .sec__pin { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: var(--s-6); }
 .sec__more { align-self: flex-start; }
 
 .panel { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--panel); padding: var(--s-5); }
 .about { display: grid; grid-template-columns: 2fr 1fr; gap: var(--s-4); }
-.about__intro { grid-row: span 3; display: flex; flex-direction: column; justify-content: space-between; gap: var(--s-6); }
+.about__intro { z-index: 1; /* a dragged chip flies over the stat panels */ grid-row: span 3; display: flex; flex-direction: column; justify-content: space-between; gap: var(--s-6); }
 .about__intro p { font-size: clamp(1.2rem, 1.9vw, 1.6rem); line-height: 1.4; }
 .chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
 .chips li {
@@ -443,8 +523,9 @@ onBeforeUnmount(() => removeEventListener('pointermove', lean))
 .xp__roles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-5); }
 .xp__roles > li { position: relative; display: flex; flex-direction: column; padding-left: 26px; }
 /* timeline dot, plus a line down to the next (older) role's dot, however tall this one is */
-.xp__roles > li::before { content: ''; position: absolute; left: 0; top: 6px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid var(--line-strong); background: var(--canvas); }
-.xp__roles > li:not(:last-child)::after { content: ''; position: absolute; left: 5px; top: 17px; bottom: calc(-1 * var(--s-5) - 6px); border-left: 1px solid var(--line-strong); }
+.xp__roles > li::before { content: ''; position: absolute; left: 0; top: 6px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--signal) calc(var(--lit, 0) * 100%), var(--line-strong)); background: var(--canvas); }
+/* --lit and --fill (0..1) are scrubbed by scroll in the script; without it they rest at 0 */
+.xp__roles > li:not(:last-child)::after { content: ''; position: absolute; left: 5px; top: 17px; bottom: calc(-1 * var(--s-5) - 6px); width: 1px; background: linear-gradient(var(--signal) calc(var(--fill, 0) * 100%), var(--line-strong) 0); }
 .xp__acts { position: relative; display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
 /* tooltips anchor to the row, not the icon: they always start at its left edge and fit in the card */
 .xp__acts :deep(.tip) { position: static; }

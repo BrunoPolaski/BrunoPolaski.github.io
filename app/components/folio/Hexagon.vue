@@ -6,6 +6,8 @@
  * so hovering one sends a pulse along its wire in that direction.
  * Desktop geometry is a fixed 680×200 stage; below 760px it becomes a plain list.
  */
+import { createDrawable, createScope, createTimeline, onScroll, stagger, type Scope } from 'animejs'
+
 const props = defineProps<{ email: string, github: string, linkedin: string }>()
 const { t } = useLocale()
 
@@ -26,10 +28,36 @@ const port = (w: { x1: number, y1: number, x2: number, y2: number }, side: strin
   side === 'driving' ? { cx: w.x2, cy: w.y2 } : { cx: w.x1, cy: w.y1 }
 
 const hot = ref<string>()
+
+// Scrolling into the footer assembles the diagram: the hexagon draws itself, the domain turns into
+// place, each wire grows the way its data flows and its adapter plugs in. Scrubbed, so it runs backwards too.
+const root = ref<HTMLElement>()
+let scope: Scope | undefined
+onMounted(() => {
+  scope = createScope({ root: root.value, mediaQueries: { calm: '(prefers-reduced-motion: reduce)' } }).add((self) => {
+    if (!self || self.matches.calm) return
+    const wire = (i: number) => adapters.value[i]!.wire
+    createTimeline({
+      defaults: { ease: 'out(3)', duration: 500 },
+      // from the moment it peeks in until it sits fully on screen, which the page end always allows
+      autoplay: onScroll({ target: root.value, enter: 'bottom top', leave: 'bottom bottom', sync: 0.5 }),
+    })
+      .add(createDrawable('.hexa__app'), { draw: ['0 0', '0 1'], duration: 900 })
+      .add('.hexa__app', { fillOpacity: [0, 1], duration: 900 }, '<<')
+      .add('.hexa__domain', { scale: [0, 1], rotate: [-120, 0] }, '-=500')
+      .add('.hexa__me, .hexa__cap', { opacity: [0, 1], translateY: [8, 0], delay: stagger(100) }, '-=300')
+      // dashed wires: grow the end point instead of a stroke draw, which would erase the dashes
+      .add('.hexa__wire > line:not(.hexa__pulse)', { x2: { from: (_: unknown, i = 0) => wire(i).x1 }, y2: { from: (_: unknown, i = 0) => wire(i).y1 }, delay: stagger(120) })
+      .add('.hexa__port', { scale: [0, 1], duration: 300, delay: stagger(120) }, '-=300')
+      .add('.hexa__adapter', { opacity: [0, 1], y: [12, 0], delay: stagger(120) }, '-=400')
+      .init() // render every step's start now; otherwise later steps show until their turn comes
+  })
+})
+onBeforeUnmount(() => scope?.revert())
 </script>
 
 <template>
-  <div class="hexa" :data-hot="hot">
+  <div ref="root" class="hexa" :data-hot="hot">
     <svg class="hexa__art" viewBox="0 0 680 200" aria-hidden="true">
       <polygon class="hexa__app" :points="hex(86)" />
       <polygon class="hexa__domain" :points="hex(50)" />
@@ -65,6 +93,7 @@ const hot = ref<string>()
 .hexa__art { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; overflow: visible; }
 
 .hexa__app { fill: var(--panel); stroke: var(--line-strong); stroke-width: 1.5; transition: stroke var(--dur) var(--ease); }
+.hexa__domain, .hexa__port { transform-box: fill-box; transform-origin: center; } /* they scale in about their own centre */
 .hexa__domain { fill: none; stroke: var(--line-strong); stroke-width: 1; stroke-dasharray: 3 5; }
 .hexa__me { text-anchor: middle; fill: var(--ink); font-size: 22px; font-weight: 800; font-stretch: 125%; }
 .hexa__cap { text-anchor: middle; fill: var(--ink-3); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; }

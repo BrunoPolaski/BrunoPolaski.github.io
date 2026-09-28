@@ -16,6 +16,7 @@
     "@iconify-json/lucide": "^1.2.136",
     "@nuxt/fonts": "^0.14.0",
     "@nuxt/icon": "^2.5.1",
+    "animejs": "^4.5.0",
     "nuxt": "^4.5.2",
     "vue": "latest",
     "vue-router": "latest"

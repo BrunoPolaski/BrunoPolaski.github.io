@@ -3,7 +3,9 @@
  * "How I work" as an event-driven saga: each step is a handler subscribed to the work log.
  * A frame publishes one event: a pulse rises from the emitting handler into the log,
  * then drops into the handler subscribed to it. -1 is outside the saga (backlog / done).
+ * Plays on a timer, unless `at` (0..1, the page's scroll progress) is given: then it picks the frame.
  */
+const props = defineProps<{ at?: number }>()
 const { t } = useLocale()
 
 // Event names are code, so they stay as-is in every language; the names, texts and notes
@@ -31,11 +33,12 @@ const log = computed(() => flow.slice(0, step.value + 1))
 const status = computed(() => f.value.to === -1 ? 'completed' : f.value.comp ? 'compensating' : 'running' as const)
 const done = (i: number) => f.value.to !== i && flow.slice(0, step.value + 1).some(e => e.from === i && !e.comp)
 const next = () => { step.value = (step.value + 1) % flow.length }
+watch(() => props.at, (at) => { if (at !== undefined) step.value = Math.min(flow.length - 1, Math.floor(at * flow.length)) })
 
 let timer: ReturnType<typeof setInterval> | undefined
 onMounted(() => {
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) playing.value = false
-  timer = setInterval(() => { if (playing.value) next() }, 2000)
+  timer = setInterval(() => { if (playing.value && props.at === undefined) next() }, 2000)
 })
 onBeforeUnmount(() => clearInterval(timer))
 </script>
@@ -77,8 +80,10 @@ onBeforeUnmount(() => clearInterval(timer))
     <div class="saga__foot">
       <span class="saga__status" :data-s="status">Saga #42 · {{ t.process.status[status] }}</span>
       <p :key="step" class="saga__note">{{ t.process.notes[step] }}</p>
-      <UiButton variant="ghost" size="sm" :icon="playing ? 'lucide:pause' : 'lucide:play'" :label="playing ? t.projects.pause : t.projects.play" @click="playing = !playing" />
-      <UiButton variant="ghost" size="sm" icon="lucide:step-forward" :label="t.projects.next" @click="next" />
+      <template v-if="at === undefined">
+        <UiButton variant="ghost" size="sm" :icon="playing ? 'lucide:pause' : 'lucide:play'" :label="playing ? t.projects.pause : t.projects.play" @click="playing = !playing" />
+        <UiButton variant="ghost" size="sm" icon="lucide:step-forward" :label="t.projects.next" @click="next" />
+      </template>
     </div>
   </div>
 </template>
