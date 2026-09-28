@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Experience as a distributed trace: each company is a parent span, each role a child span,
- * laid out on one time axis from my first role to today. Picking a role shows what I did there.
+ * laid out on one time axis from my first role to today. Newest first, like a CV, so the spans step
+ * down to the left. Picking a role shows what I did there.
  */
 import type { Messages } from '~/i18n/pt-BR'
 
@@ -9,13 +10,13 @@ const { t, locale } = useLocale()
 
 type Key = keyof Messages['experience']['roles']
 interface Role { key: Key, from: string, to?: string } // months as YYYY-MM; no `to` = current
-const companies: { name: string, roles: Role[] }[] = [
-  { name: 'Adaga Digital', roles: [
-    { key: 'intern', from: '2023-08', to: '2024-02' },
-    { key: 'junior', from: '2024-02', to: '2024-05' },
-    { key: 'mid', from: '2024-05', to: '2026-07' },
-  ] },
+const companies: { name: string, roles: Role[] }[] = [ // newest first, companies and roles alike
   { name: 'BairesDev', roles: [{ key: 'rd', from: '2026-07' }] },
+  { name: 'Adaga Digital', roles: [
+    { key: 'mid', from: '2024-05', to: '2026-07' },
+    { key: 'junior', from: '2024-02', to: '2024-05' },
+    { key: 'intern', from: '2023-08', to: '2024-02' },
+  ] },
 ]
 // what I did in each role, as icons; each one's text is experience.acts[role][key] in the locale files
 const acts: Record<Key, Record<string, string>> = {
@@ -52,7 +53,7 @@ function length(r: Role) {
   return [y && unit(y, 'year'), m && unit(m, 'month')].filter(Boolean).join(' ')
 }
 
-const picked = ref<Key>('mid')
+const picked = ref<Key>('rd')
 const pickedRole = computed(() => {
   for (const c of companies) for (const r of c.roles) if (r.key === picked.value) return { company: c.name, role: r }
   throw new Error(`unknown role ${picked.value}`)
@@ -76,7 +77,7 @@ const act = (role: Key, key: string) => (t.value.experience.acts[role] as Record
         <div class="row row--company">
           <span class="row__label"><FolioOrgText :text="c.name" /></span>
           <span class="row__track">
-            <span class="bar bar--company" :style="span(c.roles[0]!.from, c.roles.at(-1)!.to)" />
+            <span class="bar bar--company" :style="span(c.roles.at(-1)!.from, c.roles[0]!.to)" />
           </span>
         </div>
         <button
