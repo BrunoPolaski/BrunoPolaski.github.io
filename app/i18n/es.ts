@@ -17,12 +17,10 @@ const es: Messages = {
     hire: 'Contrátame',
     hireText: '¡Hola, Bruno! Vi tu portafolio y me gustaría hablar sobre una oportunidad.',
     seeProjects: 'Ver proyectos',
-    scroll: 'Desliza',
-    scrollLabel: 'Ir a Sobre mí',
   },
   about: {
     title: 'Sobre mí',
-    text: 'Me gusta resolver los problemas difíciles del servidor, construir pantallas que se sienten vivas y conectar ambos lados tan bien que no se nota la costura. Casi todos los días eso son servicios en Go, integraciones y herramientas MCP en el back, e interfaces como esta en el front.',
+    text: 'Resuelvo problemas de back-end y construyo páginas geniales en el front-end. Siempre aprendiendo algo; ahora, cultura DevOps y harness engineering.',
     years: 'Años de experiencia',
     degreeValue: 'Último año',
     degree: 'Grado en Ingeniería de Software',
@@ -31,6 +29,7 @@ const es: Messages = {
   experience: {
     title: 'Experiencia',
     now: 'actual',
+    hint: 'Elige un puesto para ver lo que hice.',
     roles: {
       rd: 'R&D Commercial Software Engineer',
       mid: 'Desarrollador Full-stack Semi Senior',

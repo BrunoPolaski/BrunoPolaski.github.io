@@ -71,12 +71,10 @@ const ptBR = {
     hire: 'Me contrate',
     hireText: 'Olá, Bruno! Vi seu portfólio e gostaria de conversar sobre uma oportunidade.',
     seeProjects: 'Ver projetos',
-    scroll: 'Rolar',
-    scrollLabel: 'Rolar até Sobre',
   },
   about: {
     title: 'Sobre mim',
-    text: 'Gosto de resolver os problemas difíceis do servidor, construir telas que parecem vivas e conectar as duas pontas tão bem que ninguém vê a emenda. No dia a dia, isso é serviços em Go, integrações e ferramentas MCP no back, e interfaces como esta no front.',
+    text: 'Resolvo problemas de back-end e construo páginas legais no front-end. Sempre aprendendo alguma coisa; agora é cultura DevOps e harness engineering.',
     years: 'Anos de experiência',
     degreeValue: 'Último ano',
     degree: 'Bacharelado em Engenharia de Software',
@@ -85,6 +83,7 @@ const ptBR = {
   experience: {
     title: 'Experiência',
     now: 'atual',
+    hint: 'Escolha um cargo para ver o que eu fiz.',
     roles: {
       rd: 'R&D Commercial Software Engineer',
       mid: 'Desenvolvedor Full-stack Pleno',

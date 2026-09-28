@@ -210,27 +210,26 @@ onBeforeUnmount(() => {
 .pat { display: flex; flex-direction: column; gap: var(--s-4); }
 .pat__gist { color: var(--ink-2); font-size: var(--fs-lg); }
 
-.stage { position: relative; isolation: isolate; display: grid; grid-template: var(--grid); gap: 56px 72px; margin-top: var(--s-4); }
+.stage { position: relative; isolation: isolate; display: grid; grid-template: var(--grid); gap: 44px 56px; margin-top: var(--s-4); }
 .card {
   grid-area: var(--area);
   position: relative;
   z-index: var(--lvl);
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  min-height: 150px;
-  margin: calc(var(--lvl) * 66px) calc(var(--lvl) * 18px) calc(var(--lvl) * 18px);
-  padding: 14px 18px 18px;
+  gap: 4px;
+  margin: calc(var(--lvl) * 62px) calc(var(--lvl) * 16px) calc(var(--lvl) * 16px);
+  padding: 14px 18px 16px;
   border: 1px solid var(--line);
-  border-radius: var(--r-card);
+  border-radius: 12px;
   background: var(--card);
   transition: border-color 0.4s var(--ease), box-shadow 0.4s var(--ease), opacity 0.4s var(--ease), background-color 0.4s var(--ease);
 }
-.card__role { font-size: var(--fs-xs); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-3); }
-.card h3 { font-size: var(--fs-lg); font-stretch: 100%; }
+.card__role { font-size: var(--fs-sm); font-weight: 600; font-stretch: 75%; color: var(--ink-3); }
+.card h3 { font-size: var(--fs-lg); font-stretch: 100%; font-weight: 700; }
 .card h3 a { text-decoration: none; }
 .card h3 a:hover { text-decoration: underline; }
-.card h3 small { font-size: var(--fs-xs); font-weight: 600; color: var(--ink-3); }
+.card h3 small { font-size: var(--fs-sm); font-weight: 600; font-stretch: 75%; color: var(--ink-3); }
 .card p { color: var(--ink-2); font-size: var(--fs-sm); }
 /* the badge hangs on the card's top edge, out of flow: showing it never reflows the card */
 .card__say {
@@ -241,8 +240,9 @@ onBeforeUnmount(() => {
   border-radius: var(--r-pill);
   background: var(--signal);
   color: #fff;
-  font-size: var(--fs-xs);
-  font-weight: 700;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  font-stretch: 75%;
   white-space: nowrap;
   box-shadow: 0 0 0 3px var(--card); /* a gap ring where it crosses the border */
 }
@@ -254,9 +254,9 @@ onBeforeUnmount(() => {
 
 .card.is-idle { opacity: 0.3; }
 .card.is-off { opacity: 0.4; border-style: dashed; }
-.card.is-lit { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal), 0 0 48px -10px var(--signal); }
+.card.is-lit { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); }
 .card.is-lit .card__role { color: var(--signal); }
-.card.is-done { background: color-mix(in srgb, var(--signal) 24%, var(--card)); }
+.card.is-done { background: color-mix(in srgb, var(--signal) 14%, var(--card)); }
 
 .wires { position: absolute; inset: 0; z-index: -1; /* under cards and badges; isolation on .stage keeps it above the page */ width: 100%; height: 100%; overflow: visible; pointer-events: none; transition: opacity 0.3s; }
 .wires line { stroke: var(--line-strong); stroke-width: 1.5; stroke-dasharray: 4 6; transition: stroke 0.3s; }
@@ -274,7 +274,7 @@ onBeforeUnmount(() => {
   margin: -5px;
   border-radius: 50%;
   background: #fff;
-  box-shadow: 0 0 10px 3px var(--signal);
+  box-shadow: 0 0 8px 2px var(--signal);
   pointer-events: none;
   animation: travel 0.8s var(--ease) both;
 }
@@ -288,7 +288,7 @@ onBeforeUnmount(() => {
 .pat__note { flex: 1; max-width: none; animation: say-in 0.4s var(--ease); }
 
 @media (max-width: 900px) {
-  .pat > .seg { flex-wrap: wrap; } /* every pattern visible, instead of one hidden off the edge */
+  .pat > .seg { scrollbar-width: none; } /* one row that scrolls sideways; wrapping broke the sliding thumb */
   .stage { grid-template: none; grid-template-columns: minmax(0, 1fr); gap: 20px; }
   .card { grid-area: auto; order: var(--o); }
   .stage--nest { grid-template: 'core' 'x' 'y' / minmax(0, 1fr); }

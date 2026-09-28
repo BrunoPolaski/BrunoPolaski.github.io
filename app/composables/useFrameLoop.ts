@@ -6,11 +6,11 @@ interface FrameHooks {
 }
 
 /**
- * Drives a canvas: DPR-aware resizing, rAF only while on screen.
- * Every resize also renders a still frame (t = 0), which is all that
+ * Drives a canvas: DPR-aware resizing, rAF only while on screen, at most `maxFps` draws a second
+ * (0 = every display frame). Every resize also renders a still frame (t = 0), which is all that
  * runs under prefers-reduced-motion.
  */
-export function useFrameLoop(canvas: Ref<HTMLCanvasElement | undefined>, hooks: FrameHooks, maxDpr = 2) {
+export function useFrameLoop(canvas: Ref<HTMLCanvasElement | undefined>, hooks: FrameHooks, maxDpr = 2, maxFps = 0) {
   let raf = 0
   let visible = true
   const cleanups: (() => void)[] = []
@@ -39,10 +39,15 @@ export function useFrameLoop(canvas: Ref<HTMLCanvasElement | undefined>, hooks: 
     io.observe(el)
     cleanups.push(() => ro.disconnect(), () => io.disconnect())
 
+    let drawn = -Infinity
     function frame(t: number) {
       raf = 0
       if (!visible) return
-      if (w && h) hooks.frame(t)
+      // 1ms slack: display frames jitter, and a frame landing just short of the interval would skip a beat
+      if (w && h && (!maxFps || t - drawn >= 1000 / maxFps - 1)) {
+        drawn = t
+        hooks.frame(t)
+      }
       raf = requestAnimationFrame(frame)
     }
     resize()

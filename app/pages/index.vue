@@ -1,5 +1,8 @@
 <script setup lang="ts">
-import { createAnimatable, createDraggable, createScope, createTimeline, onScroll, type Scope } from 'animejs'
+import { gsap } from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import Lenis from 'lenis'
+import 'lenis/dist/lenis.css'
 import type { Messages } from '~/i18n/pt-BR'
 
 definePageMeta({ layout: false })
@@ -11,16 +14,27 @@ useSeoMeta({ title: () => t.value.meta.title, description: () => t.value.meta.de
 const theme = useTheme()
 const light = ref(false)
 onMounted(() => { light.value = theme.value === 'light' })
-function toggleTheme() {
+/** The new theme spreads out in a circle from the toggle (a view transition); a plain swap without one. */
+function toggleTheme(e: MouseEvent) {
   const flip = async () => {
     light.value = !light.value
     theme.value = light.value ? 'light' : 'dark'
     await nextTick()
   }
-  if (document.startViewTransition) document.startViewTransition(flip) // crossfade instead of a hard cut
-  else flip()
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) return flip()
+  const b = (e.currentTarget as HTMLElement).getBoundingClientRect()
+  const x = b.left + b.width / 2, y = b.top + b.height / 2
+  const r = Math.hypot(Math.max(x, innerWidth - x), Math.max(y, innerHeight - y))
+  const html = document.documentElement
+  html.classList.add('is-theming') // only this transition drops the default crossfade
+  const vt = document.startViewTransition(flip)
+  vt.ready.then(() => html.animate(
+    { clipPath: [`circle(0 at ${x}px ${y}px)`, `circle(${r}px at ${x}px ${y}px)`] },
+    { duration: 700, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)', pseudoElement: '::view-transition-new(root)' },
+  ))
+  vt.finished.finally(() => html.classList.remove('is-theming'))
 }
-useHead({ htmlAttrs: { lang: locale }, bodyAttrs: { style: () => `background:${light.value ? '#f4f4f7' : '#050507'}` } })
+useHead({ htmlAttrs: { lang: locale }, bodyAttrs: { style: () => `background:${light.value ? '#f4f5f7' : '#0a0b0e'}` } })
 function onLanguage(e: Event) {
   const v = (e.target as HTMLSelectElement).value
   if (isLocale(v)) setLocale(v)
@@ -35,47 +49,15 @@ const me = {
 // "Hire me" opens a WhatsApp chat with a message in the visitor's language, or email without a number
 const { whatsapp } = useRuntimeConfig().public
 const hire = computed(() => whatsapp ? whatsappUrl(whatsapp, t.value.hero.hireText) : `mailto:${me.email}`)
-// brand colours; MCP has none, so it stays neutral
-const skills = [
-  { name: 'Go', color: '#00ADD8' },
-  { name: 'TypeScript', color: '#3178C6' },
-  { name: 'NestJS', color: '#E0234E' },
-  { name: 'Python', color: '#3776AB' },
-  { name: 'C#', color: '#512BD4' },
-  { name: 'AWS', color: '#FF9900' },
-  { name: 'MySQL', color: '#4479A1' },
-  { name: 'Docker', color: '#2496ED' },
-  { name: 'MCP', color: '#C4C4C8' },
-]
+const stack = ['Go', 'TypeScript', 'NestJS', 'Python', 'C#', 'AWS', 'MySQL', 'Docker', 'MCP']
 // live public repo count, from the GitHub API (at build time on the static site)
 const { data: langs } = await useFetch<Record<string, number>>('/api/github-languages')
 const repos = computed(() => Object.values(langs.value ?? {}).reduce((sum, n) => sum + n, 0))
-const stats = computed(() => [
+const facts = computed(() => [
   { value: '3+', label: t.value.about.years },
   { value: t.value.about.degreeValue, label: t.value.about.degree },
   { value: repos.value ? String(repos.value) : '30+', label: t.value.about.repos },
 ])
-
-type Role = { key: keyof Messages['experience']['roles'], from: string, to?: string } // months as YYYY-MM
-const experience: { company: string, roles: Role[] }[] = [
-  { company: 'BairesDev', roles: [{ key: 'rd', from: '2026-07' }] },
-  { company: 'Adaga Digital', roles: [
-    { key: 'mid', from: '2024-05', to: '2026-07' },
-    { key: 'junior', from: '2024-02', to: '2024-05' },
-    { key: 'intern', from: '2023-08', to: '2024-02' },
-  ] },
-]
-// what I did in each role, as icons; each one's tooltip is experience.acts[role][key] in the locale files
-const acts: Record<Role['key'], Record<string, string>> = {
-  rd: { building: 'lucide:construction' },
-  mid: { components: 'lucide:component', features: 'lucide:hand-coins', devops: 'lucide:cloud-cog' },
-  junior: { server: 'lucide:server-cog', products: 'lucide:package-plus' },
-  intern: { mobile: 'lucide:smartphone', backoffice: 'lucide:layout-dashboard', api: 'lucide:braces' },
-}
-const act = (role: Role['key'], key: string) => (t.value.experience.acts[role] as Record<string, string>)[key] ?? ''
-// month names come from Intl, so no locale file has to spell them
-const month = (ym: string) => new Intl.DateTimeFormat(locale.value, { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${ym}-01T00:00:00Z`))
-const period = (r: Role) => `${month(r.from)} – ${r.to ? month(r.to) : t.value.experience.now}`
 
 // Section tracker: the top bar marks the section under the middle of the screen.
 const sections: { id: keyof Messages['nav']['sections'], nav?: boolean }[] = [
@@ -96,314 +78,251 @@ onMounted(() => {
 })
 onBeforeUnmount(() => spy?.disconnect())
 
-/** Cursor spotlight: publish the pointer position as --mx/--my on the hovered element; CSS draws the glow. */
-function spot(e: PointerEvent) {
-  const el = e.currentTarget as HTMLElement
-  const b = el.getBoundingClientRect()
-  el.style.setProperty('--mx', `${e.clientX - b.left}px`)
-  el.style.setProperty('--my', `${e.clientY - b.top}px`)
-}
-
-// The background halo leans toward the cursor (-1..1 on each axis).
-const halo = ref<HTMLElement>()
-function lean(e: PointerEvent) {
-  halo.value?.style.setProperty('--px', (e.clientX / innerWidth * 2 - 1).toFixed(3))
-  halo.value?.style.setProperty('--py', (e.clientY / innerHeight * 2 - 1).toFixed(3))
-}
-// the shader only draws once hydrated: fade it in after its first frame instead of popping in
-const lit = ref(false)
+// Smooth, eased scrolling (anchor jumps included), stepped by GSAP's ticker so ScrollTrigger
+// and Lenis read the same scroll position on the same frame.
+let lenis: Lenis | undefined
+const step = (time: number) => lenis?.raf(time * 1000)
 onMounted(() => {
-  addEventListener('pointermove', lean, { passive: true })
-  requestAnimationFrame(() => requestAnimationFrame(() => { lit.value = true }))
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
+  lenis = new Lenis({ anchors: true })
+  lenis.on('scroll', ScrollTrigger.update)
+  gsap.ticker.add(step)
+  gsap.ticker.lagSmoothing(0)
 })
-onBeforeUnmount(() => removeEventListener('pointermove', lean))
+onBeforeUnmount(() => {
+  gsap.ticker.remove(step)
+  lenis?.destroy()
+})
 
-// Motion allowed: the hero's layers leave at different speeds as you scroll out of it, and the
-// experience timeline fills in as it passes the middle of the screen.
-// Big screens, too: "How I work" pins and the scroll plays its story (scrollytelling).
-// Mouse only, too: skill chips can be flung and spring back home, and the hero buttons lean
-// toward the cursor. The scope re-runs whenever one of its media queries flips.
-const roleLists = ref<HTMLElement[]>([])
-const chips = ref<HTMLElement>()
-const cta = ref<HTMLElement>()
-const sagaAt = ref<number>() // scroll progress through the pinned process section; unset = not pinned
-let scope: Scope | undefined
+// the top bar turns solid once the landing is done, so the name docks onto a clear bar
+const solid = ref(false)
+const onPageScroll = () => { solid.value = scrollY > innerHeight * 0.9 }
 onMounted(() => {
-  scope = createScope({ mediaQueries: {
-    mouse: '(pointer: fine)',
-    calm: '(prefers-reduced-motion: reduce)',
-    stage: '(min-width: 1025px) and (min-height: 720px)', // the whole section fits on one screen
-  } }).add((self) => {
-    if (!self || self.matches.calm) return
-    const undo: (() => void)[] = []
-    // parallax exit: the orb swells and fades, the text drifts down against the scroll (so it lags) and fades,
-    // the name most, the buttons least
-    createTimeline({
-      defaults: { ease: 'linear', duration: 1000 },
-      autoplay: onScroll({ target: '.hero', enter: 'top top', leave: 'top bottom', sync: 0.5 }), // thresholds read 'screen element'
-    })
-      .add('.hero__orb', { scale: [1, 1.5], opacity: [1, 0] }, 0)
-      .add('.hero__name', { y: [0, 220], scale: [1, 0.9], opacity: [1, 0], duration: 700 }, 0)
-      .add('.hero__intro', { y: [0, 140], opacity: [1, 0], duration: 600 }, 0)
-      .add('.hero__cta', { y: [0, 70], opacity: [1, 0], duration: 500 }, 0)
-    // each role lights its dot (--lit), then fills the line down to the next, older one (--fill)
-    for (const ol of roleLists.value) {
-      if (ol.children.length < 2) continue
-      const tl = createTimeline({
-        defaults: { ease: 'linear' },
-        autoplay: onScroll({ target: ol, enter: 'center top', leave: 'center bottom', sync: 0.5 }),
-      })
-      for (const li of ol.children) {
-        tl.add(li, { '--lit': [0, 1], duration: 150 })
-        if (li !== ol.lastElementChild) tl.add(li, { '--fill': [0, 1], duration: 1000 })
+  onPageScroll()
+  addEventListener('scroll', onPageScroll, { passive: true })
+})
+onBeforeUnmount(() => removeEventListener('scroll', onPageScroll))
+
+// Scroll-driven motion, scrubbed by the scroll position (it runs backwards on the way up).
+// Reduced motion: none of it, and the landing is a plain first screen.
+const root = ref<HTMLElement>()
+let mm: gsap.MatchMedia | undefined
+onMounted(() => {
+  mm = gsap.matchMedia(root.value)
+  mm.add('(prefers-reduced-motion: no-preference)', () => {
+    // The landing holds for one screen while About slides up under it: the intro steps aside,
+    // and the name shrinks into the top bar, where the brand takes over as the logo.
+    const name = root.value!.querySelector<HTMLElement>('.hero__name')!
+    const brand = root.value!.querySelector<HTMLElement>('.bar__brand')!
+    // measured from layout, not the screen: offsets ignore the transform this very tween applies
+    const dock = () => {
+      const hero = name.offsetParent as HTMLElement, b = brand.getBoundingClientRect()
+      return {
+        x: b.left - (hero.getBoundingClientRect().left + name.offsetLeft),
+        y: b.top - name.offsetTop, // pinned at the top of the screen, the hero's top is 0
+        scale: parseFloat(getComputedStyle(brand).fontSize) / parseFloat(getComputedStyle(name).fontSize),
       }
     }
-    if (self.matches.stage) {
-      sagaAt.value = 0 // makes the section tall; the observer measures it on the next frame
-      onScroll({ target: '#process', enter: 'top top', leave: 'bottom bottom', onUpdate: (o) => { sagaAt.value = o.progress } })
-      undo.push(() => { sagaAt.value = undefined })
+    gsap.timeline({ scrollTrigger: { trigger: '.hero', start: 'top top', end: '+=100%', pin: true, pinSpacing: false, scrub: 0.6, invalidateOnRefresh: true } })
+      // explicit start: at this point the CSS load-in still holds them at opacity 0, which .to() would record
+      .fromTo('.hero__span, .hero__foot', { autoAlpha: 1, y: 0 }, { autoAlpha: 0, y: -48, stagger: 0.06, duration: 0.3, ease: 'power1.in' }, 0)
+      .to(name, { x: () => dock().x, y: () => dock().y, scale: () => dock().scale, transformOrigin: '0 0', duration: 0.85, ease: 'power3.inOut' }, 0)
+      .to(name, { autoAlpha: 0, duration: 0.1 }, 0.85)
+      .fromTo(brand, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.1 }, 0.85)
+      .to('.aurora', { opacity: 0.5, duration: 1, ease: 'none' }, 0)
+    // reading progress along the bottom of the top bar
+    gsap.fromTo('.bar__progress', { scaleX: 0 }, { scaleX: 1, ease: 'none', scrollTrigger: { trigger: root.value, start: 'top top', end: 'bottom bottom', scrub: true } })
+    // blocks rise into place as they come up the screen
+    for (const el of gsap.utils.toArray<HTMLElement>('[data-rise]')) {
+      gsap.from(el, { y: 90, autoAlpha: 0, ease: 'power2.out', scrollTrigger: { trigger: el, start: 'top bottom', end: 'top 70%', scrub: 0.5 } })
     }
-    if (!self.matches.mouse) return () => undo.forEach(f => f())
-    for (const li of chips.value!.children) {
-      createDraggable(li as HTMLElement, { x: { snap: [0] }, y: { snap: [0] }, releaseStiffness: 140, releaseDamping: 7 })
-    }
-    for (const el of cta.value!.children) {
-      const btn = el as HTMLElement
-      const pull = createAnimatable(btn, { x: 400, y: 400, ease: 'out(3)' })
-      const x = pull.x!, y = pull.y!
-      const move = (e: PointerEvent) => {
-        // measure from the button's resting centre: the box already includes the current pull
-        const b = btn.getBoundingClientRect()
-        x((e.clientX - b.left - b.width / 2 + (x() as number)) * 0.35)
-        y((e.clientY - b.top - b.height / 2 + (y() as number)) * 0.35)
-      }
-      const leave = () => { x(0, 900, 'outElastic(1, .4)'); y(0, 900, 'outElastic(1, .4)') }
-      btn.addEventListener('pointermove', move)
-      btn.addEventListener('pointerleave', leave)
-      undo.push(() => {
-        btn.removeEventListener('pointermove', move)
-        btn.removeEventListener('pointerleave', leave)
-      })
-    }
-    return () => undo.forEach(f => f())
+    // the trace: every span grows out of its start date, then its length fades in
+    gsap.timeline({ scrollTrigger: { trigger: '.chart', start: 'top bottom', end: 'top 45%', scrub: 0.5 } })
+      .from('.chart .bar', { scaleX: 0, ease: 'power3.out', duration: 0.7, stagger: 0.09 })
+      .from('.chart .bar__len', { opacity: 0, duration: 0.3, stagger: 0.06 }, '-=0.3')
+    // contact: the block swells into place and its corners settle
+    gsap.from('.contact', { scale: 0.86, borderRadius: 72, ease: 'power2.out', scrollTrigger: { trigger: '.contact', start: 'top bottom', end: 'top 45%', scrub: 0.5 } })
   })
 })
-onBeforeUnmount(() => scope?.revert())
+onBeforeUnmount(() => mm?.revert())
 </script>
 
 <template>
-  <div :class="['folio', { 'is-light': light }]">
-    <div ref="halo" class="halo" :class="{ 'is-lit': lit }" aria-hidden="true">
-      <div class="halo__lens"><FxHorizonGlow :level="0.34" /></div>
-    </div>
+  <div ref="root" :class="['folio', { 'is-light': light }]">
+    <FolioAurora :light="light" />
 
-    <header class="bar acrylic">
-      <a href="#top" class="bar__brand">BP</a>
+    <header class="bar" :class="{ 'is-solid': solid }">
+      <span class="bar__progress" aria-hidden="true" />
+      <!-- the logo: the hero's name, docked (the landing flies it here) -->
+      <a href="#top" class="bar__brand" :aria-label="me.name"><span v-for="w in me.name.split(' ')" :key="w">{{ w }}</span></a>
       <nav :aria-label="t.nav.label">
-        <a v-for="s in sections.filter(x => x.nav)" :key="s.id" :href="`#${s.id}`" :aria-current="active === s.id ? 'location' : undefined">{{ t.nav.sections[s.id] }}</a>
+        <a v-for="s in sections.filter(x => x.nav)" :key="s.id" :href="`#${s.id}`" :class="`is-${s.id}`" :aria-current="active === s.id ? 'location' : undefined">{{ t.nav.sections[s.id] }}</a>
       </nav>
-      <select class="bar__lang" :value="locale" :aria-label="t.nav.language" @change="onLanguage">
-        <option v-for="l in localeCodes" :key="l" :value="l">{{ l.slice(0, 2).toUpperCase() }}</option>
-      </select>
-      <UiButton variant="ghost" size="sm" :icon="light ? 'lucide:moon' : 'lucide:sun'" :label="light ? t.nav.toDark : t.nav.toLight" @click="toggleTheme" />
+      <div class="bar__tools">
+        <select class="bar__lang" :value="locale" :aria-label="t.nav.language" @change="onLanguage">
+          <option v-for="l in localeCodes" :key="l" :value="l">{{ l.slice(0, 2).toUpperCase() }}</option>
+        </select>
+        <UiButton variant="ghost" size="sm" :icon="light ? 'lucide:moon' : 'lucide:sun'" :label="light ? t.nav.toDark : t.nav.toLight" @click="toggleTheme" />
+      </div>
     </header>
 
     <section id="top" class="hero">
-      <FxOrb class="hero__orb" :light="light" />
       <h1 class="hero__name">
         <span class="sr-only">{{ me.name }}</span>
         <FolioWordmark :text="me.name" />
       </h1>
-      <p class="hero__intro"><FolioOrgText :text="t.hero.intro" /></p>
-      <div ref="cta" class="row hero__cta">
-        <UiButton variant="solid" size="lg" :to="hire" :icon="whatsapp ? 'lucide:message-circle' : undefined" target="_blank" rel="noopener">{{ t.hero.hire }}</UiButton>
-        <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
+      <!-- the career as one open span: it opens up into the trace in Experience -->
+      <div class="hero__span" aria-hidden="true">
+        <span>2023</span><i /><span>{{ t.experience.now }}</span>
       </div>
-      <a href="#about" class="cue" :aria-label="t.hero.scrollLabel"><span class="cue__mouse" aria-hidden="true" />{{ t.hero.scroll }}</a>
+      <div class="hero__foot">
+        <p class="hero__intro"><FolioOrgText :text="t.hero.intro" /></p>
+        <div class="row hero__cta">
+          <UiButton variant="solid" size="lg" :to="hire" :icon="whatsapp ? 'lucide:message-circle' : undefined" target="_blank" rel="noopener">{{ t.hero.hire }}</UiButton>
+          <UiButton variant="outline" size="lg" to="#projects">{{ t.hero.seeProjects }}</UiButton>
+        </div>
+      </div>
     </section>
 
     <section id="about" class="sec">
       <FolioReveal :text="t.about.title" />
       <div class="about">
-        <div class="panel spot about__intro" @pointermove="spot">
-          <FolioScrub :text="t.about.text" />
-          <ul ref="chips" class="chips">
-            <li v-for="s in skills" :key="s.name" :style="{ '--c': s.color }">{{ s.name }}</li>
-          </ul>
-        </div>
-        <div v-for="(s, i) in stats" :key="i" class="panel spot stat" @pointermove="spot">
-          <FolioCount :value="s.value" />
-          <span><FolioOrgText :text="s.label" /></span>
-        </div>
+        <FolioScrub :text="t.about.text" class="about__text" />
+        <dl class="facts" data-rise>
+          <div v-for="(f, i) in facts" :key="i">
+            <dt>{{ f.label }}</dt>
+            <dd><FolioCount :value="f.value" /></dd>
+          </div>
+        </dl>
+        <ul class="skills">
+          <li v-for="s in stack" :key="s">{{ s }}</li>
+        </ul>
       </div>
     </section>
 
     <section id="experience" class="sec">
       <FolioReveal :text="t.experience.title" />
-      <div class="xp">
-        <article v-for="c in experience" :key="c.company" class="panel spot" @pointermove="spot">
-          <h3><FolioOrgText :text="c.company" /></h3>
-          <ol ref="roleLists" class="xp__roles">
-            <li v-for="r in c.roles" :key="r.key" :class="{ 'is-now': !r.to }">
-              <b>{{ t.experience.roles[r.key] }}</b>
-              <span class="muted">{{ period(r) }}</span>
-              <div class="xp__acts">
-                <UiTooltip v-for="(icon, k) in acts[r.key]" :key="k" :text="act(r.key, k)" wide>
-                  <button type="button" class="xp__act" :aria-label="act(r.key, k)"><Icon :name="icon" /></button>
-                </UiTooltip>
-              </div>
-            </li>
-          </ol>
-        </article>
-      </div>
+      <FolioTrace data-rise />
     </section>
 
     <section id="projects" class="sec">
       <FolioReveal :text="t.projects.title" />
-      <p class="muted">{{ t.projects.lead }}</p>
-      <FolioPatterns />
+      <p class="sec__lead">{{ t.projects.lead }}</p>
+      <FolioPatterns data-rise />
       <UiButton variant="outline" :to="me.github" icon-right="lucide:arrow-up-right" class="sec__more">{{ t.projects.more }}</UiButton>
     </section>
 
-    <section id="process" class="sec" :class="{ 'is-pinned': sagaAt !== undefined }">
-      <div class="sec__pin">
-        <FolioReveal :text="t.process.title" />
-        <p class="muted">{{ t.process.lead }}</p>
-        <FolioSaga :at="sagaAt" />
-      </div>
+    <section id="process" class="sec">
+      <FolioReveal :text="t.process.title" />
+      <p class="sec__lead">{{ t.process.lead }}</p>
+      <FolioSaga data-rise />
     </section>
 
-    <section id="contact" class="sec contact spot" @pointermove="spot">
-      <FxPixelGrid class="contact__grid" />
-      <FolioReveal :text="t.contact.title" />
-      <p class="muted">{{ t.contact.lead }}</p>
-      <FolioContact :email="me.email" />
+    <section id="contact" class="sec">
+      <div class="contact">
+        <div>
+          <FolioReveal :text="t.contact.title" />
+          <p class="sec__lead">{{ t.contact.lead }}</p>
+        </div>
+        <FolioContact :email="me.email" />
+      </div>
     </section>
 
     <footer class="foot">
-      <FolioHexagon :email="me.email" :github="me.github" :linkedin="me.linkedin" class="foot__hexa" />
-      <div class="foot__links">
-        <a href="#top"><Icon name="lucide:arrow-up" />{{ t.footer.top }}</a>
-      </div>
+      <FolioHexagon :email="me.email" :github="me.github" :linkedin="me.linkedin" />
+      <a href="#top" class="foot__top"><Icon name="lucide:arrow-up" />{{ t.footer.top }}</a>
     </footer>
   </div>
 </template>
 
+<style>
+/* the theme toggle's circle reveal replaces the default crossfade */
+html.is-theming::view-transition-old(root),
+html.is-theming::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
+</style>
+
 <style scoped>
-/* dark by default: redefine the Halo roles once, every nested component follows */
-.folio {
+/* Dark by default. Redefining the Halo roles here restyles every nested component;
+   the contact block always wears the opposite theme. */
+.folio, .folio.is-light .contact {
   color-scheme: dark;
-  --canvas: #050507;
-  --surface: #0d0d12;
-  --ink: #fff;
-  --ink-2: #c4c4c8;
-  --ink-3: #8a8a90;
-  --on-ink: #000;
-  --line: #22222a;
-  --line-strong: #3a3a42;
-  --wash: rgb(255 255 255 / 0.08);
-  --signal: #7a7aff;
-  --signal-soft: rgb(122 122 255 / 0.22);
-  --acrylic-tint: rgb(13 13 18 / 0.6);
-  --acrylic-edge: rgb(255 255 255 / 0.08);
-  --card: #0e0e14; /* solid card fill */
-  --panel: rgb(14 14 20 / 0.72); /* translucent panel over the halo */
-  --scrim: rgb(5 5 7 / 0.9); /* text shadow that lifts copy off the glow */
-  isolation: isolate; /* keeps the z-index:-1 halo above this background */
+  --canvas: #0a0b0e;
+  --surface: #121419;
+  --surface-sunken: #07080a;
+  --card: #121419;
+  --panel: #121419;
+  --ink: #eeeff3;
+  --ink-2: #a6aab6;
+  --ink-3: #7c8190;
+  --on-ink: #0a0b0e;
+  --line: #1f222a;
+  --line-strong: #2f333d;
+  --wash: rgb(255 255 255 / 0.06);
+  --signal: #6e6bff;
+  --signal-soft: rgb(110 107 255 / 0.18);
+}
+.folio.is-light, .folio:not(.is-light) .contact {
+  color-scheme: light;
+  --canvas: #f4f5f7;
+  --surface: #ffffff;
+  --surface-sunken: #eceef1;
+  --card: #ffffff;
+  --panel: #ffffff;
+  --ink: #0b0d12;
+  --ink-2: #4a4f5c;
+  --ink-3: #6b7080;
+  --on-ink: #ffffff;
+  --line: #dfe2e8;
+  --line-strong: #c8ccd5;
+  --wash: rgb(0 0 0 / 0.05);
+  --signal: #3a3af4;
+  --signal-soft: rgb(58 58 244 / 0.12);
+}
+.folio {
+  isolation: isolate; /* keeps the z-index:-1 mesh above this background */
+  --gutter: clamp(16px, 4vw, 48px);
+  --col: min(1200px, 100% - 2 * var(--gutter));
   background: var(--canvas);
   color: var(--ink);
   overflow-x: clip;
 }
-.folio.is-light {
-  color-scheme: light;
-  --canvas: #f4f4f7;
-  --surface: #ffffff;
-  --ink: #0a0a10;
-  --ink-2: #45454f;
-  --ink-3: #74747e;
-  --on-ink: #fff;
-  --line: #e2e2e8;
-  --line-strong: #c9c9d3;
-  --wash: rgb(0 0 0 / 0.05);
-  --signal: #5a5af0;
-  --signal-soft: rgb(90 90 240 / 0.14);
-  --acrylic-tint: rgb(255 255 255 / 0.62);
-  --acrylic-edge: rgb(0 0 0 / 0.06);
-  --card: #ffffff;
-  --panel: rgb(255 255 255 / 0.72);
-  --scrim: rgb(244 244 247 / 0.9);
-}
-/* the halo shader paints light on black; inverted (hue kept), it paints soft tints on white, kept faint */
-.folio.is-light .halo__lens { filter: invert(1) hue-rotate(180deg); }
-.folio.is-light .halo.is-lit { opacity: 0.25; }
 /* the Adaga mark is white-on-transparent */
 .folio.is-light :deep(img[src$='adaga.svg']) { filter: invert(1); }
 
-/* anchor jumps (top bar, buttons) glide; :has() keeps it to this page after client-side navigation */
-@media (prefers-reduced-motion: no-preference) {
-  :global(html:has(.folio)) { scroll-behavior: smooth; }
-}
-
-/*
- * Background halo. The shader renders into a canvas a quarter of the viewport and is
- * blown up 4x: it's blurred anyway, so this costs 1/16 of the pixels.
- */
-.halo { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; opacity: 0; transition: opacity 2.4s var(--ease); }
-.halo.is-lit { opacity: 0.6; }
-.halo__lens { position: absolute; left: -10%; top: -10%; width: 30%; height: 30%; transform: scale(4); transform-origin: 0 0; }
-.halo__lens > .horizon {
-  filter: blur(14px) saturate(0.25);
-  transform: translate(calc(var(--px, 0) * -10px), calc(var(--py, 0) * -6px));
-  transition: transform 1.6s var(--ease);
-}
-@media (prefers-reduced-motion: no-preference) {
-  .halo__lens > .horizon { animation: breathe 16s ease-in-out infinite alternate; }
-  @supports (animation-timeline: scroll()) {
-    /* the horizon rises as you scroll down the page */
-    .halo__lens { animation: rise linear both; animation-timeline: scroll(root); }
-  }
-}
-@keyframes breathe {
-  from { scale: 1; rotate: -3deg; }
-  to { scale: 1.15; rotate: 4deg; }
-}
-@keyframes rise { to { translate: 0 -38vh; } }
-
-/* anything with .spot gets a glow that follows the cursor (see spot()) */
-.spot { position: relative; isolation: isolate; }
-.spot::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  background: radial-gradient(420px circle at var(--mx, 50%) var(--my, 50%), var(--signal-soft), transparent 70%);
-  opacity: 0;
-  transition: opacity 0.4s var(--ease);
-}
-.spot:hover::after { opacity: 1; }
-
+/* top bar: transparent over the hero, solid once the page moves */
 .bar {
   position: fixed;
-  top: var(--s-3);
-  left: 50%;
-  translate: -50% 0;
+  inset: 0 0 auto;
   z-index: 40;
   display: flex;
   align-items: center;
-  gap: var(--s-4);
-  width: min(760px, calc(100% - 2 * var(--s-3)));
-  padding: 6px 6px 6px var(--s-4);
-  border-radius: 16px;
+  gap: var(--s-6);
+  height: 64px;
+  padding: 0 var(--gutter);
+  border-bottom: 1px solid transparent;
+  transition: background-color 0.4s var(--ease), border-color 0.4s var(--ease);
 }
-.bar__brand { font-weight: 800; font-stretch: 125%; text-decoration: none; }
-.bar nav { flex: 1; display: flex; justify-content: center; gap: var(--s-4); overflow-x: auto; scrollbar-width: none; }
-.bar nav a { font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); text-decoration: none; }
+.bar.is-solid {
+  border-bottom-color: var(--line);
+  background: color-mix(in srgb, var(--canvas) 78%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  backdrop-filter: blur(16px) saturate(160%);
+}
+.bar__progress { position: absolute; inset: auto 0 -1px; height: 2px; background: linear-gradient(90deg, transparent, var(--signal)); transform-origin: left; transform: scaleX(0); }
+.bar__brand { display: flex; flex-direction: column; margin-left: -0.04em; font-size: 17px; font-weight: 900; font-stretch: 125%; line-height: 0.82; letter-spacing: -0.035em; text-decoration: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .bar__brand { visibility: hidden; } /* the landing hands the name over; until then the hero shows it */
+}
+.bar nav { display: flex; gap: var(--s-5); margin-left: auto; }
+.bar nav a { position: relative; font-size: var(--fs-sm); font-weight: 600; color: var(--ink-2); text-decoration: none; transition: color var(--dur) var(--ease); }
 .bar nav a:hover, .bar nav a[aria-current] { color: var(--ink); }
+.bar nav a::after { content: ''; position: absolute; inset: auto 0 -6px; height: 2px; background: var(--signal); scale: 0 1; transform-origin: left; transition: scale 0.35s var(--ease); }
+.bar nav a[aria-current]::after { scale: 1 1; }
+.bar__tools { display: flex; align-items: center; gap: 4px; }
 .bar__lang {
+  appearance: none;
   height: 30px;
-  padding: 0 6px;
+  padding: 0 10px;
   border: 1px solid var(--line-strong);
   border-radius: var(--r-control);
   background: transparent;
@@ -414,175 +333,82 @@ onBeforeUnmount(() => scope?.revert())
 }
 .bar__lang:hover { color: var(--ink); border-color: var(--ink-3); }
 .bar__lang option { background: var(--surface); color: var(--ink); }
-.bar nav a[aria-current] { text-decoration: underline 2px var(--signal); text-underline-offset: 6px; }
 
+/* hero: the name fills the column, set in the widest cut; everything sits on the bottom edge */
 .hero {
-  position: relative;
-  isolation: isolate;
+  position: relative; /* the name's offsets, for docking, are measured from here */
+  container-type: inline-size;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--s-5);
-  min-height: max(100svh, 640px);
-  padding: 96px clamp(var(--s-4), 5vw, var(--s-8)) 112px; /* bottom: room for the scroll cue */
-  text-align: center; /* no overflow clipping: the glow must fade out on its own, past the hero's edge (.folio clips the sides) */
+  justify-content: flex-end;
+  gap: clamp(20px, 3vw, 36px);
+  width: var(--col);
+  min-height: max(100svh, 620px);
+  margin: 0 auto;
+  padding: 112px 0 clamp(32px, 7vh, 72px);
 }
-/* square, so the vortex and its glow stay round; both fade out before the canvas edge */
-.hero__orb {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  z-index: -1;
-  width: clamp(756px, 135vmin, 1296px); /* room for the wide intro cloud; .folio clips the sideways spill */
-  max-width: none;
-  aspect-ratio: 1;
-  translate: -50% -50%;
-}
-.hero__name {
-  font-size: clamp(3.2rem, 10vw, 9.5rem);
-  line-height: 0.9;
-  letter-spacing: -0.04em;
-  --rest-wdth: 100;
-  --rest-wght: 700;
-  --rest-o: 1;
-}
-.hero__name .mark { justify-content: center; }
-.hero__intro { max-width: 46ch; color: var(--ink); font-size: var(--fs-md); text-shadow: 0 1px 14px var(--scrim), 0 0 2px var(--scrim); } /* sits on the glow: full ink plus a halo in the page colour keeps it legible */
-.hero__cta { justify-content: center; }
-
-/* scroll cue: a mouse whose wheel keeps rolling; fades out over the first 30vh of scroll */
-.cue {
-  position: absolute;
-  left: 50%;
-  bottom: var(--s-5);
-  translate: -50% 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  color: var(--ink-3);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  text-decoration: none;
-  transition: color var(--dur) var(--ease);
-}
-.cue:hover { color: var(--ink); }
-.cue__mouse { position: relative; width: 22px; height: 34px; border: 2px solid currentColor; border-radius: 12px; }
-.cue__mouse::before { content: ''; position: absolute; left: 50%; top: 6px; width: 4px; height: 7px; margin-left: -2px; border-radius: 2px; background: var(--ink); }
+.hero__name { margin-left: -0.04em; font-size: 22.4cqi; line-height: 0.82; letter-spacing: -0.035em; --hot-wdth: 62; --hot-wght: 500; }
+.hero__name :deep(.mark) { flex-direction: column; }
+.hero__span { display: flex; align-items: center; gap: 14px; font-size: var(--fs-sm); font-weight: 600; font-stretch: 75%; color: var(--ink-3); }
+.hero__span span:last-child { color: var(--signal); }
+.hero__span i { position: relative; flex: 1; height: 2px; border-radius: 1px; background: linear-gradient(90deg, var(--line-strong), var(--signal)); }
+.hero__span i::after { content: ''; position: absolute; right: -4px; top: -3px; width: 8px; height: 8px; border-radius: 50%; background: var(--signal); animation: ping 2s var(--ease) infinite; }
+/* a request running down the career line, over and over */
+.hero__span i::before { content: ''; position: absolute; top: -2px; left: -120px; width: 120px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, transparent, var(--signal) 85%, #fff); filter: blur(1px); opacity: 0; }
+.hero__foot { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s-5) var(--s-7); }
+.hero__intro { max-width: 46ch; font-size: clamp(1.05rem, 1.4vw, 1.2rem); color: var(--ink-2); }
+.hero__intro :deep(.org) { color: var(--ink); }
 @media (prefers-reduced-motion: no-preference) {
-  .cue__mouse::before { animation: wheel 1.8s var(--ease) infinite; }
+  /* load: the letters widen in (Wordmark), then the span draws to "now" and the rest rises in */
+  .hero__span i { animation: draw 1.4s var(--ease) 0.7s backwards; }
+  .hero__span i::before { animation: run 3.6s cubic-bezier(0.6, 0, 0.3, 1) 2.2s infinite; }
+  .hero__span, .hero__foot { animation: rise 0.9s var(--ease) 0.8s backwards; }
 }
-@keyframes wheel {
-  0% { opacity: 0; translate: 0 0; }
-  25% { opacity: 1; }
-  80%, 100% { opacity: 0; translate: 0 12px; }
+@keyframes draw { from { clip-path: inset(-6px 100% -6px 0); } to { clip-path: inset(-6px -12px -6px 0); } }
+@keyframes rise { from { opacity: 0; translate: 0 12px; } }
+@keyframes run {
+  0% { left: -120px; opacity: 0; }
+  10% { opacity: 1; }
+  55%, 100% { left: 100%; opacity: 0; }
 }
-@supports (animation-timeline: scroll()) {
-  .cue { animation: cue-out linear both; animation-timeline: scroll(root); animation-range: 0 30vh; }
-}
-@keyframes cue-out { to { opacity: 0; visibility: hidden; } }
-
-.sec { display: flex; flex-direction: column; gap: var(--s-6); width: min(1200px, 100% - 2 * var(--s-4)); margin: 0 auto; padding: clamp(var(--s-7), 10vw, 140px) 0 0; }
-.sec h2 { font-size: clamp(2.2rem, 6vw, 4.5rem); letter-spacing: -0.03em; }
-.sec > .muted, .sec__pin > .muted { margin-top: calc(-1 * var(--s-4)); font-size: var(--fs-lg); }
-/* unpinned, the wrapper steps aside: its children lay out as the section's own */
-.sec__pin { display: contents; }
-/* pinned: one screen of stage plus 40vh of scroll for each of the story's 7 frames */
-.sec.is-pinned { height: calc(100vh + 7 * 40vh); }
-.is-pinned .sec__pin { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: var(--s-6); }
-.sec__more { align-self: flex-start; }
-
-.panel { border: 1px solid var(--line); border-radius: var(--r-card); background: var(--panel); padding: var(--s-5); }
-.about { display: grid; grid-template-columns: 2fr 1fr; gap: var(--s-4); }
-.about__intro { z-index: 1; /* a dragged chip flies over the stat panels */ grid-row: span 3; display: flex; flex-direction: column; justify-content: space-between; gap: var(--s-6); }
-.about__intro p { font-size: clamp(1.2rem, 1.9vw, 1.6rem); line-height: 1.4; }
-.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.chips li {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 12px 5px 10px;
-  border-radius: var(--r-pill);
-  border: 1px solid color-mix(in srgb, var(--c) 50%, transparent);
-  background: color-mix(in srgb, var(--c) 12%, transparent);
-  font-size: var(--fs-sm);
-  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-/* lifted toward white so the darker brands (Python, C#) still read on the dark panel */
-.chips li::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: color-mix(in oklab, var(--c) 75%, white); box-shadow: 0 0 8px var(--c); }
-.chips li:hover { border-color: var(--c); box-shadow: 0 0 20px -6px var(--c); }
-.stat { display: flex; flex-direction: column; justify-content: flex-end; gap: 4px; min-height: 120px; }
-.stat strong { font-size: clamp(2rem, 4vw, 3rem); font-stretch: 125%; line-height: 1; }
-.stat span { color: var(--ink-3); font-size: var(--fs-sm); }
-
-.xp { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-4); align-items: start; }
-.xp h3 { font-size: clamp(1.5rem, 6.5vw, var(--fs-2xl)); margin-bottom: var(--s-5); }
-.xp__roles { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--s-5); }
-.xp__roles > li { position: relative; display: flex; flex-direction: column; padding-left: 26px; }
-/* timeline dot, plus a line down to the next (older) role's dot, however tall this one is */
-.xp__roles > li::before { content: ''; position: absolute; left: 0; top: 6px; width: 11px; height: 11px; border-radius: 50%; border: 2px solid color-mix(in srgb, var(--signal) calc(var(--lit, 0) * 100%), var(--line-strong)); background: var(--canvas); }
-/* --lit and --fill (0..1) are scrubbed by scroll in the script; without it they rest at 0 */
-.xp__roles > li:not(:last-child)::after { content: ''; position: absolute; left: 5px; top: 17px; bottom: calc(-1 * var(--s-5) - 6px); width: 1px; background: linear-gradient(var(--signal) calc(var(--fill, 0) * 100%), var(--line-strong) 0); }
-.xp__acts { position: relative; display: flex; flex-wrap: wrap; gap: var(--s-2); margin-top: var(--s-3); }
-/* tooltips anchor to the row, not the icon: they always start at its left edge and fit in the card */
-.xp__acts :deep(.tip) { position: static; }
-.xp__act {
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  border: 1px solid var(--line-strong);
-  border-radius: 10px;
-  background: var(--card);
-  color: var(--ink-2);
-  font-size: 18px;
-  cursor: help;
-  transition: color var(--dur) var(--ease), border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
-}
-.xp__act:hover, .xp__act:focus-visible { color: var(--signal); border-color: var(--signal); box-shadow: 0 0 18px -6px var(--signal); }
-.xp__roles > li.is-now::before { border-color: var(--signal); background: var(--signal); animation: ping 2s var(--ease) infinite; }
 @keyframes ping {
   from { box-shadow: 0 0 0 0 var(--signal); }
-  to { box-shadow: 0 0 0 10px transparent; }
+  to { box-shadow: 0 0 0 12px transparent; }
 }
 
+.sec { display: flex; flex-direction: column; gap: var(--s-6); width: var(--col); margin: 0 auto; padding-top: clamp(96px, 13vw, 176px); }
+.sec h2 { font-size: clamp(2rem, 4.6vw, 3.4rem); font-weight: 900; line-height: 1; letter-spacing: -0.025em; }
+.sec__lead { margin-top: calc(-1 * var(--s-3)); max-width: 56ch; font-size: var(--fs-lg); color: var(--ink-2); }
+.sec__more { align-self: flex-start; }
 
-.contact { align-items: flex-start; margin-top: clamp(var(--s-7), 10vw, 140px); padding: clamp(var(--s-6), 6vw, var(--s-8)); border-radius: var(--r-shell); border: 1px solid var(--line); background: var(--panel); overflow: clip; }
-/* fills the room right of the form; under everything else in the panel, fading in from the left */
-.contact__grid { position: absolute; top: 0; right: 0; bottom: 0; z-index: -1; width: 40%; mask-image: linear-gradient(90deg, transparent, #000 45%); }
+.about { display: grid; grid-template-columns: minmax(0, 8fr) minmax(0, 4fr); grid-template-rows: auto 1fr; gap: var(--s-6) clamp(32px, 6vw, 96px); align-items: start; } /* 1fr: the facts' extra height goes under the stack list, not between it and the text */
+.about__text { max-width: none; font-size: clamp(1.3rem, 2.3vw, 1.95rem); line-height: 1.32; letter-spacing: -0.01em; text-wrap: pretty; }
+.facts { grid-row: span 2; margin: 0; } /* beside the paragraph and the stack list under it */
+.facts div { display: flex; flex-direction: column-reverse; gap: 4px; padding: var(--s-4) 0; border-top: 1px solid var(--line); }
+.facts div:last-child { border-bottom: 1px solid var(--line); }
+.facts dd { margin: 0; font-size: clamp(2rem, 3.4vw, 2.75rem); font-weight: 800; font-stretch: 62%; line-height: 1; }
+.facts dt { font-size: var(--fs-sm); color: var(--ink-3); }
+.skills { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 0; padding: 0; list-style: none; font-weight: 600; font-stretch: 75%; color: var(--ink-3); }
 
-.foot { margin-top: clamp(var(--s-7), 10vw, 140px); padding: 0 var(--s-4) var(--s-4); border-top: 1px solid var(--line); background: color-mix(in srgb, var(--canvas) 60%, transparent); }
-.foot__hexa { margin-top: var(--s-7); }
-.foot__links { display: flex; justify-content: center; gap: var(--s-5); padding: var(--s-5) 0; font-size: var(--fs-sm); }
-.foot__links a { display: inline-flex; align-items: center; gap: 6px; color: var(--ink-2); text-decoration: none; }
-.foot__links .iconify { font-size: 1.15em; }
-.foot__links a:hover { color: var(--ink); }
+/* contact: the one inverted block, heading beside the form */
+.contact { transform-origin: 50% 100%; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--s-6) clamp(32px, 6vw, 96px); padding: clamp(28px, 6vw, 72px); border-radius: 24px; background: var(--canvas); color: var(--ink); }
+.contact h2 { font-size: clamp(2.4rem, 5.4vw, 4.2rem); }
+.contact .sec__lead { margin-top: var(--s-4); }
 
-@media (max-width: 1000px) {
-  .contact__grid { display: none; } /* the form takes the full width */
-}
+.foot { margin-top: clamp(56px, 7vw, 96px); padding: var(--s-7) var(--s-4) var(--s-6); border-top: 1px solid var(--line); }
+.foot__top { display: flex; width: fit-content; margin: var(--s-6) auto 0; align-items: center; gap: 6px; font-size: var(--fs-sm); color: var(--ink-2); text-decoration: none; }
+.foot__top:hover { color: var(--ink); }
+
 @media (max-width: 900px) {
-  .about { grid-template-columns: repeat(3, 1fr); }
-  .about__intro { grid-column: 1 / -1; grid-row: auto; }
-  .xp { grid-template-columns: minmax(0, 1fr); }
+  .about, .contact { grid-template-columns: minmax(0, 1fr); }
+  .about { grid-template-rows: none; }
+  .facts { grid-row: auto; }
 }
-@media (max-width: 720px) {
-  .panel { padding: var(--s-4); }
-  .contact { padding: var(--s-6) var(--s-5); }
-  .cue { display: none; } /* the hero outgrows the screen here; content already runs past the fold */
-  .hero { padding-bottom: var(--s-7); }
-  .bar nav { justify-content: start; gap: var(--s-3); }
-  .about { grid-template-columns: 1fr; }
-}
-@media (max-width: 480px) {
-  /* room for all four links, the language picker and the theme toggle: the name is in the hero */
-  .bar__brand { display: none; }
-  .bar { gap: var(--s-2); padding-left: var(--s-3); }
-  .bar nav { gap: 10px; }
-  .bar nav a { font-size: var(--fs-xs); }
-  .bar__lang { appearance: none; padding: 0 6px; border-color: transparent; text-decoration: underline dotted; text-underline-offset: 3px; }
+@media (max-width: 640px) {
+  .bar { gap: var(--s-4); }
+  .bar nav a:not(.is-contact) { display: none; } /* one page, one scroll: the brand and Contact are enough */
+  .hero { min-height: 88svh; }
+  .hero__cta { width: 100%; }
+  .hero__cta > * { flex: 1; }
 }
 </style>

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 /**
- * Letters blur in, then swell along Archivo's width and weight axes as the cursor nears.
+ * Letters widen into place on load, then move along Archivo's width and weight axes as the cursor nears.
  * Each frame: measure every letter, then write each letter's --k (0 far, 1 under the cursor),
- * eased toward its target; CSS maps --k to the axes. Resting look comes from
- * --rest-wdth / --rest-wght / --rest-o set by the parent.
+ * eased toward its target; CSS maps --k from the rest axes to the hot ones.
+ * The parent sets --rest-wdth / --rest-wght (look at rest) and --hot-wdth / --hot-wght (under the cursor).
  */
 const props = defineProps<{ text: string }>()
 
@@ -22,7 +22,7 @@ function frame() {
   // read all boxes before writing any --k: interleaving forces a layout per letter
   const target = els.map((el) => {
     const b = el.getBoundingClientRect()
-    return Math.max(0, 1 - Math.hypot(px - b.left - b.width / 2, py - b.top - b.height / 2) / (b.height * 2.4))
+    return Math.max(0, 1 - Math.hypot(px - b.left - b.width / 2, py - b.top - b.height / 2) / (b.height * 1.1)) // reach scales with the type: a dent around the cursor, not the whole word
   })
   let moving = false
   els.forEach((el, i) => {
@@ -48,12 +48,10 @@ onMounted(() => {
   io = new IntersectionObserver(([e]) => { visible = !!e?.isIntersecting })
   io.observe(root.value!)
   addEventListener('pointermove', onMove, { passive: true })
-  addEventListener('scroll', schedule, { passive: true }) // letters move under a still cursor too
 })
 onBeforeUnmount(() => {
   io?.disconnect()
   removeEventListener('pointermove', onMove)
-  removeEventListener('scroll', schedule)
   cancelAnimationFrame(raf)
 })
 </script>
@@ -71,15 +69,13 @@ onBeforeUnmount(() => {
 .mark__word { display: inline-flex; white-space: nowrap; }
 .mark__ch {
   --k: 0;
-  --w: var(--rest-wdth, 75);
-  --g: var(--rest-wght, 400);
-  --o: var(--rest-o, 0.25);
-  font-variation-settings: 'wdth' calc(var(--w) + (125 - var(--w)) * var(--k)), 'wght' calc(var(--g) + (800 - var(--g)) * var(--k));
-  opacity: calc(var(--o) + (1 - var(--o)) * var(--k));
+  --w: var(--rest-wdth, 125);
+  --g: var(--rest-wght, 900);
+  font-variation-settings: 'wdth' calc(var(--w) + (var(--hot-wdth, 62) - var(--w)) * var(--k)), 'wght' calc(var(--g) + (var(--hot-wght, 500) - var(--g)) * var(--k));
 }
-/* the entrance runs on an inner span, so it never fights the cursor-driven opacity */
-.mark__in { display: inline-block; animation: mark-in 0.9s var(--ease) backwards; animation-delay: calc(var(--i) * 45ms); }
-@keyframes mark-in { from { opacity: 0; filter: blur(14px); translate: 0 0.25em; } }
+/* the entrance runs on an inner span, so it never fights the cursor: each letter starts condensed and light, then widens */
+.mark__in { display: inline-block; animation: mark-in 1.1s var(--ease) backwards; animation-delay: calc(var(--i) * 55ms); }
+@keyframes mark-in { from { opacity: 0; font-variation-settings: 'wdth' 62, 'wght' 300; translate: 0 0.12em; } }
 @media (prefers-reduced-motion: reduce) {
   .mark__in { animation: none; }
 }

@@ -25,13 +25,14 @@ function compile(gl: WebGLRenderingContext, type: number, src: string) {
 /**
  * Renders a full-screen fragment shader into a canvas.
  * Uniforms: u_res (device px), u_time (s), u_pointer (-1..1, eased).
- * `uniforms` adds float uniforms read every frame (e.g. from props).
+ * `uniforms` adds float uniforms read every frame (e.g. from props); `maxFps` caps the draws (0 = every frame).
  * Without WebGL the canvas stays transparent, so give its parent a background.
  */
 export function useShader(
   canvas: Ref<HTMLCanvasElement | undefined>,
   fragment: string,
   uniforms: () => Record<string, number> = () => ({}),
+  maxFps = 0,
 ) {
   let gl: WebGLRenderingContext | null = null
   let uRes: WebGLUniformLocation | null = null
@@ -86,5 +87,5 @@ export function useShader(
       for (const [name, v] of Object.entries(uniforms())) gl!.uniform1f(gl!.getUniformLocation(prog!, name), v)
       gl!.drawArrays(gl!.TRIANGLES, 0, 3)
     },
-  }, 1.5)
+  }, 1.5, maxFps)
 }

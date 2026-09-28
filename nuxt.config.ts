@@ -14,7 +14,7 @@ export default defineNuxtConfig({
   fonts: {
     // width axis powers the wide (125%) headings
     google: { experimental: { variableAxis: { Archivo: { wdth: [['62', '125']] } } } },
-    families: [{ name: 'Archivo', provider: 'google', weights: ['400 800'], styles: ['normal'] }],
+    families: [{ name: 'Archivo', provider: 'google', weights: ['300 900'], styles: ['normal'] }],
   },
   icon: {
     serverBundle: { collections: ['lucide'] },

@@ -17,12 +17,10 @@ const en: Messages = {
     hire: 'Hire me',
     hireText: 'Hi Bruno! I saw your portfolio and would like to talk about an opportunity.',
     seeProjects: 'See projects',
-    scroll: 'Scroll',
-    scrollLabel: 'Scroll to About',
   },
   about: {
     title: 'About me',
-    text: 'I like solving the hard problems on the server, building screens that feel alive, and connecting the two so cleanly you can\'t see the seam. Most days that\'s Go services, integrations and MCP tooling in the back, and interfaces like this one in the front.',
+    text: 'I solve back-end problems and build cool pages on the front end. Always learning something; right now it’s DevOps culture and harness engineering.',
     years: 'Years of experience',
     degreeValue: 'Final year',
     degree: 'Software Engineering bachelor\'s',
@@ -31,6 +29,7 @@ const en: Messages = {
   experience: {
     title: 'Experience',
     now: 'now',
+    hint: 'Pick a role to see what I did there.',
     roles: {
       rd: 'R&D Commercial Software Engineer',
       mid: 'Mid-level Full-stack Developer',
